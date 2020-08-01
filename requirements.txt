@@ -1,0 +1,2 @@
+markdown2>=2.3.5
+netifaces
