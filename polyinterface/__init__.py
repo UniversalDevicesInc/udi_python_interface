@@ -1,7 +1,9 @@
 
 
 from .polylogger import LOG_HANDLER, LOGGER
-from .polyinterface import Interface, Node, Controller, unload_interface, get_network_interface
+from .polyinterface import unload_interface, get_network_interface
+from .node import Node
+from .interface import Interface
 
 __version__ = '3.0.0'
 __description__ = 'UDI PG3 Interface'
