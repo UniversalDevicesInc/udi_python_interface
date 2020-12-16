@@ -51,6 +51,7 @@ class Interface(object):
             LOGGER.error('Failed to parse init. Exiting...')
             sys.exit(1)
         self.config = None
+        self.isInitialConfig = False
         self.connected = False
         self.uuid = self.pg3init['uuid']
         self.profileNum = str(self.pg3init['profileNum'])
@@ -87,6 +88,10 @@ class Interface(object):
         self.__startObservers = []
         self.__deleteObservers = []
         self.__pollObservers = []
+        self.__customParamsObservers = []
+        self.__customTypedParamsObservers = []
+        self.__customDataObservers = []
+        self.__customNoticeObservers = []
         Interface.__exists = True
         self.custom_params_docs_file_sent = False
         self.custom_params_pending_docs = ''
@@ -132,6 +137,34 @@ class Interface(object):
         Gives the ability to bind any methods to be run when the poll command is received.
         """
         self.__pollObservers.append(callback)
+
+    def onCustomParams(self, callback):
+        """
+        Gives the ability to bind any methods to be run when the
+        custom parameters are received.
+        """
+        self.__customParamsObservers.append(callback)
+
+    def onCustomTypedParams(self, callback):
+        """
+        Gives the ability to bind any methods to be run when the
+        custom typed parameters are received.
+        """
+        self.__customTypedParamsObservers.append(callback)
+
+    def onCustomData(self, callback):
+        """
+        Gives the ability to bind any methods to be run when the
+        custom data is received.
+        """
+        self.__customDataObservers.append(callback)
+
+    def onCustomNotice(self, callback):
+        """
+        Gives the ability to bind any methods to be run when a
+        notice is received.
+        """
+        self.__customNoticeObservers.append(callback)
 
     def _connect(self, mqttc, userdata, flags, rc):
         """
@@ -203,7 +236,7 @@ class Interface(object):
                                     for type in item:
                                         if type != 'success':
                                             LOGGER.info(
-                                                'Successfully set {}'.format(type))
+                                                'Successfully set {} = {}'.format(type, item.get(type)))
                                 else:
                                     for type in item:
                                         if type != 'success':
@@ -213,6 +246,10 @@ class Interface(object):
                     else:
                         LOGGER.error('set input was not a list')
                 elif key == 'getAll':
+                    """
+                    custom keys should include notices, customparams, 
+                    customtypedparams, customdata
+                    """
                     if isinstance(parsed_msg[key], list):
                         for custom in parsed_msg[key]:
                             LOGGER.debug(
@@ -224,9 +261,41 @@ class Interface(object):
                                 self.custom[custom.get(
                                     'key')] = custom.get('value')
                     if self.config is None:
+                        LOGGER.debug('Requesting configuration from Polyglot')
                         self.send({'config': {}}, 'system')
+                elif key == 'customdata':
+                    # something in custom database was changed
+                    LOGGER.debug('customData: {}'.format(parsed_msg[key]))
+                    try:
+                        for watcher in self.__customDataObservers:
+                            watcher(parsed_msg[key])
+                    except KeyError as e:
+                        LOGGER.exception('KeyError in customData: {}'.format(e), exc_info=True)
+                elif key == 'customparams':
+                    LOGGER.debug('customParams: {}'.format(parsed_msg[key]))
+                    try:
+                        for watcher in self.__customParamsObservers:
+                            watcher(parsed_msg[key])
+                    except KeyError as e:
+                        LOGGER.exception('KeyError in customParams: {}'.format(e), exc_info=True)
+                elif key == 'customtypedparams':
+                    LOGGER.debug('customTypedParams: {}'.format(parsed_msg[key]))
+                    try:
+                        for watcher in self.__customTypedParamsObservers:
+                            watcher(parsed_msg[key])
+                    except KeyError as e:
+                        LOGGER.exception('KeyError in customTypedParams: {}'.format(e), exc_info=True)
+                elif key == 'notice':
+                    LOGGER.debug('notice: {}'.format(parsed_msg[key]))
+                    try:
+                        for watcher in self.__customNoticeObservers:
+                            watcher(parsed_msg[key])
+                    except KeyError as e:
+                        LOGGER.exception('KeyError in notice: {}'.format(e), exc_info=True)
                 elif key == 'installprofile':
                     LOGGER.debug('Profile installation finished')
+                elif key == 'error':
+                    LOGGER.error('error {}'.format(parsed_msg[key]))
                 elif key in inputCmds:
                     self.inQueue.put(parsed_msg)
                 else:
@@ -388,7 +457,7 @@ class Interface(object):
         """
         LOGGER.info('Sending custom {} to Polyglot.'.format(key))
         message = {'set': [{'key': key, 'value': self.custom[key]}]}
-        self._send(message, 'custom')
+        self.send(message, 'custom')
 
     def _inConfig(self, config):
         """
@@ -397,7 +466,7 @@ class Interface(object):
         received.
         """
         # if this is the first time called set isInitialConfig to true
-        isInitialConfig = self.config != None
+        self.isInitialConfig = self.config == None
 
         self.config = config
 
@@ -428,10 +497,20 @@ class Interface(object):
         # TODO: Is this where we want newParamsDetected?  Or does that
         #       need to go elsewhere now?
 
+        if 'customparams' in self.custom:
+            self.config['customparams'] = self.custom['customparams']
+        else:
+            self.config['customparams'] = {}
+
+        if 'customtypedparams' in self.custom:
+            self.config['customtypedparams'] = self.custom['customtypedparams']
+        else:
+            self.config['customtypedparams'] = {}
+
         try:
             for watcher in self.__configObservers:
-                watcher(config)
-
+                # start a thread to prevent deadlocks, do we still need this?
+                Thread(target=watcher, args=[config]).start()
         except KeyError as e:
             LOGGER.error('KeyError in gotConfig: {}'.format(e), exc_info=True)
 
@@ -499,7 +578,8 @@ class Interface(object):
         try:
             if result.get('address'):
                 # Call node's start function
-                self._nodes.get(result.get('address')).start()
+                #self._nodes.get(result.get('address')).start()
+                LOGGER.debug('What do we do with the results???')
             else:
                 del self._nodes[result.get('address')]
         except (KeyError, ValueError) as err:
@@ -594,33 +674,59 @@ class Interface(object):
         message = {'installprofile': {'reboot': False}}
         self.send(message, 'system')
 
-    # TODO:
     def getNotices(self):
         """ Returns the current list of Polyglot notices """
+        return self.custom['notices']
 
-    def addNotice(self, key, text):
+    def addNotice(self, text, key):
         """
         Adds a notice to the Polyglot UI. The key is a reference to
         the notice.
         """
         LOGGER.info('Sending notice {} to Polyglot.'.format(key))
-        message = {'set': [{'key': 'notice', 'value': {key: text}}]}
+
+        if 'notices' not in self.custom:
+            self.custom['notices'] = {}  # array of key/values
+
+        if isinstance(self.custom['notices'], dict):
+            self.custom['notices'].update({key: text})
+        else:
+            self.custom['notices'] = {key: text}
+
+        message = {'set': [{'key': 'notice', 'value': self.custom['notices']}]}
         self.send(message, 'custom')
+
 
     # TODO:
     def addNoticeTemp(self, key, text, delaySec):
+        LOGGER.debug('FIXME: add temp notice not yet implemented.')
         """
         Add a notice to the Polyglot UI. The notice will be active for
         delaySec seconds.
         """
 
-    # TODO:
     def removeNotice(self, key):
         """ Remove a notice specified by the key. """
+        if not isinstance(key, string_types):
+            LOGGER.error('removeNotice: key isn\'t a string. Ignoring.')
+            return
 
-    #TODO:
+        try:
+            if self.custom.get('notices') is not None and isinstance(self.custom['notices'], dict):
+                self.custom['notices'].pop(key)
+                message = {'set': [{'key': 'notice', 'value': self.custom['notices']}]}
+                self.send(message, 'custom')
+            else:
+                LOGGER.error('removeNotice: notice not found.')
+        except KeyError:
+            LOGGER.error('{} not found in notices. Ignoring.'.format(key), exc_info=True)
+
     def removeNoticesAll(self):
         """ Remove all notices from Polyglot. """
+        self.custom['notices'] = {}
+        LOGGER.debug('Removing all notices.')
+        message = {'set': [{'key': 'notice', 'value': self.custom['notices']}]}
+        self.send(message, 'custom')
 
     def getCustomParams(self):
         """ Returns all the configuration parameters from the UI. """
@@ -631,7 +737,7 @@ class Interface(object):
         if key in self.custom['customparams']:
             return self.custom['customparams'][key]
 
-        return none
+        return None
 
     def saveCustomParams(self, params):
         """
@@ -645,18 +751,33 @@ class Interface(object):
         self.custom['customparams'] = params
         self._saveCustom('customparams')
 
-    #TODO:
     def addCustomParam(self, params):
         """
         Adds additional configuration parameters.  This appends to the
         existing list of parameters.
         """
-        if type(params) is not list:
-            params = [params]
+        if self.custom.get('customparams') is not None:
+            self.custom['customparams'].update(params)
+        else:
+            self.custom['customparams'] = params
 
-    #TODO:
+        self._saveCustom('customparams')
+
     def removeCustomParams(self, key):
         """ Removes the configuration parameter specified by key. """
+        if not isinstance(key, string_types):
+            LOGGER.error('removeCustomParam: key isn\'t a string, ignoring.')
+            return
+
+        try:
+            if self.custom.get('customparams') is not None and isinstance(self.custom['customparams'], dict):
+                self.custom['customparams'].pop(key)
+                self._saveCustom('customparams')
+            else:
+                LOGGER.error('removeCustomParam: customparams not found.')
+        except KeyError:
+            LOGGER.error('{} not found in customparams. Ignoring.'.format(key), exc_info=True)
+
 
     #TODO:
     def saveTypedParams(self, typedParams):
