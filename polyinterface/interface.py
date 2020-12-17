@@ -285,13 +285,13 @@ class Interface(object):
                             watcher(parsed_msg[key])
                     except KeyError as e:
                         LOGGER.exception('KeyError in customTypedParams: {}'.format(e), exc_info=True)
-                elif key == 'notice':
-                    LOGGER.debug('notice: {}'.format(parsed_msg[key]))
+                elif key == 'notices':
+                    LOGGER.debug('notices: {}'.format(parsed_msg[key]))
                     try:
                         for watcher in self.__customNoticeObservers:
                             watcher(parsed_msg[key])
                     except KeyError as e:
-                        LOGGER.exception('KeyError in notice: {}'.format(e), exc_info=True)
+                        LOGGER.exception('KeyError in notices: {}'.format(e), exc_info=True)
                 elif key == 'installprofile':
                     LOGGER.debug('Profile installation finished')
                 elif key == 'error':
@@ -693,7 +693,7 @@ class Interface(object):
         else:
             self.custom['notices'] = {key: text}
 
-        message = {'set': [{'key': 'notice', 'value': self.custom['notices']}]}
+        message = {'set': [{'key': 'notices', 'value': self.custom['notices']}]}
         self.send(message, 'custom')
 
 
@@ -714,7 +714,7 @@ class Interface(object):
         try:
             if self.custom.get('notices') is not None and isinstance(self.custom['notices'], dict):
                 self.custom['notices'].pop(key)
-                message = {'set': [{'key': 'notice', 'value': self.custom['notices']}]}
+                message = {'set': [{'key': 'notices', 'value': self.custom['notices']}]}
                 self.send(message, 'custom')
             else:
                 LOGGER.error('removeNotice: notice not found.')
@@ -725,7 +725,7 @@ class Interface(object):
         """ Remove all notices from Polyglot. """
         self.custom['notices'] = {}
         LOGGER.debug('Removing all notices.')
-        message = {'set': [{'key': 'notice', 'value': self.custom['notices']}]}
+        message = {'set': [{'key': 'notices', 'value': self.custom['notices']}]}
         self.send(message, 'custom')
 
     def getCustomParams(self):
