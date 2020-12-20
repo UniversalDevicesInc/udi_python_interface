@@ -273,12 +273,20 @@ class Interface(object):
                         LOGGER.exception('KeyError in customData: {}'.format(e), exc_info=True)
                 elif key == 'customparams':
                     LOGGER.debug('customParams: {}'.format(parsed_msg[key]))
+                    """
+                    TODO: can we detect which parameters are new/changed
+                    and mark them here before sending to ns?
+                    """
                     try:
                         for watcher in self.__customParamsObservers:
                             watcher(parsed_msg[key])
                     except KeyError as e:
                         LOGGER.exception('KeyError in customParams: {}'.format(e), exc_info=True)
                 elif key == 'customtypedparams':
+                    """
+                    TODO: can we detect which parameters are new/changed
+                    and mark them here before sending to ns?
+                    """
                     LOGGER.debug('customTypedParams: {}'.format(parsed_msg[key]))
                     try:
                         for watcher in self.__customTypedParamsObservers:
@@ -286,6 +294,10 @@ class Interface(object):
                     except KeyError as e:
                         LOGGER.exception('KeyError in customTypedParams: {}'.format(e), exc_info=True)
                 elif key == 'notices':
+                    """
+                    TODO: can we detect which parameters are new/changed
+                    and mark them here before sending to ns?
+                    """
                     LOGGER.debug('notices: {}'.format(parsed_msg[key]))
                     try:
                         for watcher in self.__customNoticeObservers:
@@ -470,8 +482,9 @@ class Interface(object):
 
         self.config = config
 
-        if 'newNodes' in config:
-            for n in config['newNodes']:
+        # update our internal _nodes list.
+        if 'nodes' in config:
+            for n in config['nodes']:
                 address = n.address.slice(5)
 
                 node = {}
@@ -489,23 +502,10 @@ class Interface(object):
                 else:
                     node = self._nodes[address]
 
+                # Update any node properties from config list
                 if node:
                     for prop in n:
                         node[prop] = n[prop]
-
-
-        # TODO: Is this where we want newParamsDetected?  Or does that
-        #       need to go elsewhere now?
-
-        if 'customparams' in self.custom:
-            self.config['customparams'] = self.custom['customparams']
-        else:
-            self.config['customparams'] = {}
-
-        if 'customtypedparams' in self.custom:
-            self.config['customtypedparams'] = self.custom['customtypedparams']
-        else:
-            self.config['customtypedparams'] = {}
 
         try:
             for watcher in self.__configObservers:
@@ -631,27 +631,27 @@ class Interface(object):
         """ Returns a copy of the last config received. """
         return self.config
 
-    # TODO:
     def getNodes(self):
         """
         Returns your list of nodes.  This is a list of nodes with your
         classes applied to them.
+
+        Is this an array or a dictionary keyed with address?
         """
-        return none
+        return self._nodes
 
     def getNode(self, address):
         """
-        Get Node by Address of existing nodes.
+        Get Node by Address of existing nodes. 
         """
         try:
-            for node in self.config['nodes']:
-                if node['address'] == address:
-                    return node
-            return False
+            if address in self._node:
+                    return self._node[address]
+            return None
         except KeyError:
             LOGGER.error(
-                'Usually means we have not received the config yet.', exc_info=True)
-            return False
+                'No node with address {}.'.format(address), exc_info=True)
+            return None
 
     def delNode(self, address):
         """
@@ -667,6 +667,10 @@ class Interface(object):
             }
         }
         self.send(message, 'command')
+
+        """
+        TODO: Should this remove the node from _nodes?
+        """
 
     def updateProfile(self):
         """ Sends the latest profile files to the ISY """
@@ -779,7 +783,6 @@ class Interface(object):
             LOGGER.error('{} not found in customparams. Ignoring.'.format(key), exc_info=True)
 
 
-    #TODO:
     def saveTypedParams(self, typedParams):
         """ 
         Saves typed configuration parameters.
@@ -906,17 +909,21 @@ class Interface(object):
 
         TODO: Can this use its own custom db vs using a customdata
         entry?  customdata can be overwritten by the nodeserver.
+
+        Or would it make more sense to add this to the config DB?
         """
         LOGGER.debug('check_profile: force={} build_profile={}'.format(
             force, build_profile))
-        cdata = deepcopy(self.custom.get('customdata')) or {}
-        LOGGER.debug('check_profile:      customdata={}'.format(cdata))
+
+        cdata = deepcopy(self.custom.get('idata')) or {}
+
+        LOGGER.debug('check_profile:   saved_version={}'.format(cdata))
         LOGGER.debug('check_profile: profile_version={}'.format(
             self.serverdata['profile_version']))
         if self.serverdata['profile_version'] == "NotDefined":
             LOGGER.error(
                 'check_profile: Ignoring since nodeserver does not have profile_version')
-            return
+            return False
 
         update_profile = False
 
@@ -944,8 +951,10 @@ class Interface(object):
             st = self.updateProfile()
 
             cdata['profile_version'] = serverdata['profile_version']
-            self.custom['customdata'] = cdata
-            self._saveCustom('customdata')
+            self.custom['idata'] = cdata
+            self._saveCustom('idata')
+
+        return update_profile
 
     def supports_feature(self, feature):
         LOGGER.warning('The supports_feature() function is deprecated.')
