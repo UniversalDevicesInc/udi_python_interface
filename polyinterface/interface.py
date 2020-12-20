@@ -264,11 +264,20 @@ class Interface(object):
                         LOGGER.debug('Requesting configuration from Polyglot')
                         self.send({'config': {}}, 'system')
                 elif key == 'customdata':
-                    # something in custom database was changed
                     LOGGER.debug('customData: {}'.format(parsed_msg[key]))
+                    """
+                    TODO: check for changes?
+                    """
+                    try:
+                        value = json.loads(parsed_msg[key].get('value'))
+                    except ValueError as e:
+                        value = parsed_msg[key].get('value')
+
+                    self.custom[key] = value
+
                     try:
                         for watcher in self.__customDataObservers:
-                            watcher(parsed_msg[key])
+                            watcher(value)
                     except KeyError as e:
                         LOGGER.exception('KeyError in customData: {}'.format(e), exc_info=True)
                 elif key == 'customparams':
@@ -278,8 +287,15 @@ class Interface(object):
                     and mark them here before sending to ns?
                     """
                     try:
+                        value = json.loads(parsed_msg[key].get('value'))
+                    except ValueError as e:
+                        value = parsed_msg[key].get('value')
+
+                    self.custom[key] = value
+
+                    try:
                         for watcher in self.__customParamsObservers:
-                            watcher(parsed_msg[key])
+                            watcher(value)
                     except KeyError as e:
                         LOGGER.exception('KeyError in customParams: {}'.format(e), exc_info=True)
                 elif key == 'customtypedparams':
@@ -289,8 +305,15 @@ class Interface(object):
                     """
                     LOGGER.debug('customTypedParams: {}'.format(parsed_msg[key]))
                     try:
+                        value = json.loads(parsed_msg[key].get('value'))
+                    except ValueError as e:
+                        value = parsed_msg[key].get('value')
+
+                    self.custom[key] = value
+
+                    try:
                         for watcher in self.__customTypedParamsObservers:
-                            watcher(parsed_msg[key])
+                            watcher(value)
                     except KeyError as e:
                         LOGGER.exception('KeyError in customTypedParams: {}'.format(e), exc_info=True)
                 elif key == 'notices':
@@ -300,8 +323,15 @@ class Interface(object):
                     """
                     LOGGER.debug('notices: {}'.format(parsed_msg[key]))
                     try:
+                        value = json.loads(parsed_msg[key].get('value'))
+                    except ValueError as e:
+                        value = parsed_msg[key].get('value')
+
+                    self.custom[key] = value
+
+                    try:
                         for watcher in self.__customNoticeObservers:
-                            watcher(parsed_msg[key])
+                            watcher(value)
                     except KeyError as e:
                         LOGGER.exception('KeyError in notices: {}'.format(e), exc_info=True)
                 elif key == 'installprofile':
