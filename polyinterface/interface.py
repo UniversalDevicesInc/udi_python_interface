@@ -818,9 +818,16 @@ class Interface(object):
         self.custom['customdata'] = data
         self._saveCustom('customdata')
 
-    #TODO:
     def addCustomData(self, data):
-        """ Add additional nodeserver data. """
+        """ Add to or update nodeserver custom data. """
+        if not isinstance(data, dict):
+            LOGGER.error('addCustomData: data must be a dictionary')
+            return
+
+        for key in data:
+           self.cutom['customdata'][key] = data[key]
+
+        self._save_custom('customdata')
 
     def getCustomData(self, key=None):
         """ get either all custom data or a single entry """
