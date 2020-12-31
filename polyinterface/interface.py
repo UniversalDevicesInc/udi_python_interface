@@ -225,6 +225,12 @@ class Interface(object):
                     LOGGER.debug(
                         'Received stop from Polyglot... Shutting Down.')
                     self.stop()
+                elif key == 'setLogLevel':
+                    try:
+                        self.currentLogLevel = parsed_msg[key]['level'].upper()
+                        LOGGER.setLevel(self.currentLogLevel)
+                    except (KeyError, ValueError) as err:
+                        LOGGER.error('Failed to set {}: {}'.format(key, err), exc_info=True)
                 elif key == 'set':
                     if isinstance(parsed_msg[key], list):
                         for item in parsed_msg[key]:
@@ -536,6 +542,10 @@ class Interface(object):
                 if node:
                     for prop in n:
                         node[prop] = n[prop]
+
+        if 'logLevel' in config:
+            self.currentLogLevel = config['logLevel'].upper()
+            LOGGER.setLevel(self.currentLogLevel)
 
         try:
             for watcher in self.__configObservers:
@@ -992,6 +1002,16 @@ class Interface(object):
             self._saveCustom('idata')
 
         return update_profile
+
+    def getLogLevel(self):
+        return self.currentLogLevel
+
+    def setLogLevel(self, newLevel):
+        LOGGER.info('Setting log level to {}'.format(newLevel))
+        message = {
+                'setLogLevel': { 'level': newLevel.upper() }
+        }
+        self.send(message, 'system')
 
     def supports_feature(self, feature):
         LOGGER.warning('The supports_feature() function is deprecated.')

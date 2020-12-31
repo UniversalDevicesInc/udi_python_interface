@@ -298,6 +298,10 @@ checkProfile(), compare the profile version in server.json with the installed ve
 
 getNetworkInterface(), get the network interface the node server is running on.
 
+getLogLevel(), get the currently configured log level. This is the level that Polyglot has saved in it's database.  The node server may have changed this directly without notifying Polyglot.
+
+setLogLevel(level), send the specified level to Polyglot to store in its database. This level will then be sent back to the node server and set as the current log level.
+
 runForever(), run the main message handling loop.  This waits for messages from polyglot and appropriately notifies the node server.
 
 ### Creating nodes
