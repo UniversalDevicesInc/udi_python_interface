@@ -22,6 +22,7 @@ from threading import Thread, current_thread
 import time
 import netifaces
 from .polylogger import LOGGER
+from .notices import Notices
 
 DEBUG = False
 
@@ -95,6 +96,7 @@ class Interface(object):
         Interface.__exists = True
         self.custom_params_docs_file_sent = False
         self.custom_params_pending_docs = ''
+        self.Notices = Notices(self)
         try:
             self.network_interface = self.getNetworkInterface()
             LOGGER.info('Connect: Network Interface: {}'.format(
@@ -333,7 +335,11 @@ class Interface(object):
                     except ValueError as e:
                         value = parsed_msg[key].get('value')
 
+                    """ FIXME: remove self.custom['notices'] and methods """
                     self.custom[key] = value
+
+                    """ Load new notices data into class """
+                    self.Notices.load(value)
 
                     try:
                         for watcher in self.__customNoticeObservers:
@@ -521,12 +527,16 @@ class Interface(object):
         # update our internal _nodes list.
         if 'nodes' in config:
             for n in config['nodes']:
-                address = n.address.slice(5)
+                if 'address' not in n:
+                    continue
 
+                address = n['address']
                 node = {}
 
+                LOGGER.error('_nodes is type = {}'.format(type(self._nodes)))
+
                 # if this node doesn't exist yet, create it
-                if address not in self._nodes[address]:
+                if address not in self._nodes:
                     nodeClass = self._nodeClasses[n.nodedef]
                     primary = n.primary.slice(5)
 
@@ -538,10 +548,12 @@ class Interface(object):
                 else:
                     node = self._nodes[address]
 
-                # Update any node properties from config list
+                # TODO: Update any node properties from config list
+                """
                 if node:
                     for prop in n:
                         node[prop] = n[prop]
+                """
 
         if 'logLevel' in config:
             self.currentLogLevel = config['logLevel'].upper()
