@@ -7,7 +7,7 @@ class Custom(dict):
         self.__dict__['poly'] = poly
         self.__dict__['custom'] = custom
 
-        LOGGER.error('CUSTOM: Initialzing _rawdata to empty')
+        LOGGER.debug('CUSTOM: Initialzing _rawdata to empty')
         self.__dict__['_rawdata'] = {}
 
         """
@@ -23,8 +23,13 @@ class Custom(dict):
         return self.__dict__
 
     def _save(self):
-        self.poly.custom[self.__dict__['custom']] = self._rawdata
-        self.poly._saveCustom(self.__dict__['custom'])
+        key = self.__dict__['custom']
+        #self.poly.custom[self.__dict__['custom']] = self._rawdata
+        #self.poly._saveCustom(self.__dict__['custom'])
+
+        LOGGER.info('Sending data {} to Polyglot.'.format(key))
+        message = {'set': [{'key': key, 'value': self.__dict__['_rawdata']}]}
+        self.poly.send(message, 'custom')
 
     def load(self, new_data):
         """
@@ -32,7 +37,7 @@ class Custom(dict):
         structure from Polyglot's database.  Should this
         be overwriting or updating the internal structure?
         """
-        LOGGER.error('CUSTOM: load {}'.format(new_data))
+        LOGGER.debug('CUSTOM: load {}'.format(new_data))
 
         """
         we expect new_data (and _rawdata) to be key/value pairs
@@ -40,7 +45,7 @@ class Custom(dict):
         dictionary appropriately.
         """
         for key in new_data:
-            LOGGER.error('CUSTOM:  -- checking {} / {}'.format(key, new_data[key]))
+            LOGGER.debug('CUSTOM:  -- checking {} / {}'.format(key, new_data[key]))
             edata = {'changed':False, 'new':False}
 
             if key in self.__dict__['_rawdata']:
@@ -55,12 +60,12 @@ class Custom(dict):
 
     def __setattr__(self, key, notice):
         self.__dict__['_rawdata'][key] = notice
-        LOGGER.error('CUSTOM: {} = {} ...saving'.format(key, notice))
+        LOGGER.debug('CUSTOM: {} = {} ...saving'.format(key, notice))
         self._save()
 
     def __setitem__(self, key, notice):
         self.__dict__['_rawdata'][key] = notice
-        LOGGER.error('CUSTOM: {} = {} ...saving'.format(key, notice))
+        LOGGER.debug('CUSTOM: {} = {} ...saving'.format(key, notice))
         self._save()
 
     def __getattr__(self, key):
@@ -78,12 +83,12 @@ class Custom(dict):
     def delete(self, key):
         if key in self._rawdata:
             self._rawdata.pop(key)
-            LOGGER.error('CUSTOM: delete {} ...saving'.format(key))
+            LOGGER.debug('CUSTOM: delete {} ...saving'.format(key))
             self._save()
 
     def clear(self):
         self.__dict__['_rawdata'] = {}
-        LOGGER.error('CUSTOM: Clear  ...saving')
+        LOGGER.debug('CUSTOM: Clear  ...saving')
         self._save()
 
     def __iter__(self):

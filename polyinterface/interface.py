@@ -73,7 +73,6 @@ class Interface(object):
         self._mqttc.on_log = self._log
         self.useSecure = True
         self._nodes = {}
-        self.custom = {}
         if self.pg3init['secure'] is 1:
             self.sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
             self.sslContext.check_hostname = False
@@ -96,9 +95,16 @@ class Interface(object):
         Interface.__exists = True
         self.custom_params_docs_file_sent = False
         self.custom_params_pending_docs = ''
+
+        """ public properties """
         self.Notices = Custom(self, 'notices')
         self.Parameters = Custom(self, 'customparams')
         self.TypedParams = Custom(self, 'customtypedparams')
+        self.Custom = Custom(self, 'customdata')
+
+        """ persistent data storage for Interface """
+        self._ifaceData = Custom(self, 'idata')  # Interface data
+
         try:
             self.network_interface = self.getNetworkInterface()
             LOGGER.info('Connect: Network Interface: {}'.format(
@@ -266,18 +272,21 @@ class Interface(object):
                             LOGGER.debug(
                                 'Received {} from database'.format(custom.get('key')))
                             try:
-                                # TODO: Update Notices and Parameters??
                                 value = json.loads(custom.get('value'))
 
                                 if custom.get('key') == 'notices':
                                     self.Notices.load(value)
                                 elif custom.get('key') == 'customparams':
                                     self.Parameters.load(value)
-
-                                self.custom[custom.get('key')] = value
+                                elif custom.get('key') == 'customtypedparams':
+                                    self.TypedParams.load(value)
+                                elif custom.get('key') == 'customdata':
+                                    self.Custom.load(value)
+                                elif custom.get('key') == 'idata':
+                                    self._ifaceData.load(value)
                             except ValueError as e:
-                                self.custom[custom.get(
-                                    'key')] = custom.get('value')
+                                LOGGER.error('Failure trying to load {} data'.format(custom.get('key')))
+
                     if self.config is None:
                         LOGGER.debug('Requesting configuration from Polyglot')
                         self.send({'config': {}}, 'system')
@@ -291,7 +300,7 @@ class Interface(object):
                     except ValueError as e:
                         value = parsed_msg[key].get('value')
 
-                    self.custom[key] = value
+                    self.Custom.load(value)
 
                     try:
                         for watcher in self.__customDataObservers:
@@ -310,7 +319,6 @@ class Interface(object):
                         value = parsed_msg[key].get('value')
 
                     self.Parameters.load(value)
-                    self.custom[key] = value
 
                     try:
                         for watcher in self.__customParamsObservers:
@@ -328,8 +336,6 @@ class Interface(object):
                     except ValueError as e:
                         value = parsed_msg[key].get('value')
 
-                    self.custom[key] = value
-
                     try:
                         for watcher in self.__customTypedParamsObservers:
                             watcher(value)
@@ -346,9 +352,6 @@ class Interface(object):
                         value = json.loads(parsed_msg[key])
                     except ValueError as e:
                         value = parsed_msg[key].get('value')
-
-                    """ FIXME: remove self.custom['notices'] and methods """
-                    self.custom[key] = value
 
                     """ Load new notices data into class """
                     self.Notices.load(value)
@@ -514,16 +517,6 @@ class Interface(object):
             self._mqttc.publish(topic, json.dumps(message), retain=False)
         except TypeError as err:
             LOGGER.error('MQTT Send Error: {}'.format(err), exc_info=True)
-
-    def _saveCustom(self, key):
-        """
-        Send custom dictionary to Polyglot to save and be retrieved on startup.
-
-        :param key: Dictionary of key value pairs to store in Polyglot database.
-        """
-        LOGGER.info('Sending custom {} to Polyglot.'.format(key))
-        message = {'set': [{'key': key, 'value': self.custom[key]}]}
-        self.send(message, 'custom')
 
     def _inConfig(self, config):
         """
@@ -745,28 +738,6 @@ class Interface(object):
         message = {'installprofile': {'reboot': False}}
         self.send(message, 'system')
 
-    def getNotices(self):
-        """ Returns the current list of Polyglot notices """
-        return self.custom['notices']
-
-    def addNotice(self, text, key):
-        """
-        Adds a notice to the Polyglot UI. The key is a reference to
-        the notice.
-        """
-        LOGGER.info('Sending notice {} to Polyglot.'.format(key))
-
-        if 'notices' not in self.custom:
-            self.custom['notices'] = {}  # array of key/values
-
-        if isinstance(self.custom['notices'], dict):
-            self.custom['notices'].update({key: text})
-        else:
-            self.custom['notices'] = {key: text}
-
-        message = {'set': [{'key': 'notices', 'value': self.custom['notices']}]}
-        self.send(message, 'custom')
-
 
     # TODO:
     def addNoticeTemp(self, key, text, delaySec):
@@ -776,80 +747,7 @@ class Interface(object):
         delaySec seconds.
         """
 
-    def removeNotice(self, key):
-        """ Remove a notice specified by the key. """
-        if not isinstance(key, string_types):
-            LOGGER.error('removeNotice: key isn\'t a string. Ignoring.')
-            return
-
-        try:
-            if self.custom.get('notices') is not None and isinstance(self.custom['notices'], dict):
-                self.custom['notices'].pop(key)
-                message = {'set': [{'key': 'notices', 'value': self.custom['notices']}]}
-                self.send(message, 'custom')
-            else:
-                LOGGER.error('removeNotice: notice not found.')
-        except KeyError:
-            LOGGER.error('{} not found in notices. Ignoring.'.format(key), exc_info=True)
-
-    def removeNoticesAll(self):
-        """ Remove all notices from Polyglot. """
-        self.custom['notices'] = {}
-        LOGGER.debug('Removing all notices.')
-        message = {'set': [{'key': 'notices', 'value': self.custom['notices']}]}
-        self.send(message, 'custom')
-
-    def getCustomParams(self):
-        """ Returns all the configuration parameters from the UI. """
-        return self.custom['customparams']
-
-    def getCustomParam(self, key):
-        """ Return the 'key' configuration parameter from the UI. """
-        if key in self.custom['customparams']:
-            return self.custom['customparams'][key]
-
-        return None
-
-    def saveCustomParams(self, params):
-        """
-        Saves the configuration parameters specified in the params
-        object.  This overwrites all configuration parameters.
-        """
-        LOGGER.info('Sending customParams to Polyglot.')
-        if type(params) is not list:
-            params = [params]
-
-        self.custom['customparams'] = params
-        self._saveCustom('customparams')
-
-    def addCustomParam(self, params):
-        """
-        Adds additional configuration parameters.  This appends to the
-        existing list of parameters.
-        """
-        if self.custom.get('customparams') is not None:
-            self.custom['customparams'].update(params)
-        else:
-            self.custom['customparams'] = params
-
-        self._saveCustom('customparams')
-
-    def removeCustomParams(self, key):
-        """ Removes the configuration parameter specified by key. """
-        if not isinstance(key, string_types):
-            LOGGER.error('removeCustomParam: key isn\'t a string, ignoring.')
-            return
-
-        try:
-            if self.custom.get('customparams') is not None and isinstance(self.custom['customparams'], dict):
-                self.custom['customparams'].pop(key)
-                self._saveCustom('customparams')
-            else:
-                LOGGER.error('removeCustomParam: customparams not found.')
-        except KeyError:
-            LOGGER.error('{} not found in customparams. Ignoring.'.format(key), exc_info=True)
-
-
+    """ Deprecated and should be removed.  Keeping just for the description """
     def saveTypedParams(self, typedParams):
         """ 
         Saves typed configuration parameters.
@@ -871,46 +769,6 @@ class Interface(object):
         LOGGER.info('Sending typed parameters to Polyglot.')
         if type(typedParams) is not list:
             typedParams = [typedParams]
-
-        """
-          Bob: Does it really make sense to have these calling saveCustom
-          vs. just calling send()?  Maybe if we want to use the 
-          self.custom[key] to return the values in the 'get...' functions.
-          """
-        self.custom['customtypedparams'] = typedParams
-        self._saveCustom('customtypedparams')
-
-    def saveCustomData(self, data):
-        """ Save data for your nodeserver. This will overwrite existing data """
-        self.custom['customdata'] = data
-        self._saveCustom('customdata')
-
-    def addCustomData(self, data):
-        """ Add to or update nodeserver custom data. """
-        if not isinstance(data, dict):
-            LOGGER.error('addCustomData: data must be a dictionary')
-            return
-
-        for key in data:
-           self.cutom['customdata'][key] = data[key]
-
-        self._save_custom('customdata')
-
-    def getCustomData(self, key=None):
-        """ get either all custom data or a single entry """
-        if key == None:
-            return self.custom['customdata']
-        
-        if key in self.custom['customdata']:
-            return self.custom['customdata'][key]
-
-        return None
-
-    def removeCustomData(self, key):
-        """ delete custom data with key """
-        if key in self.custom['customdata']:
-            self.custom['customdata'][key].remove
-            self._saveCustom('customdata')
 
     def restart(self):
         """
@@ -952,8 +810,9 @@ class Interface(object):
             html = self.getMarkDownData(
                 Interface.CUSTOM_CONFIG_DOCS_FILE_NAME)
 
-        self.custom['customparamsdoc'] = html
-        self._saveCustom('customparamsdoc')
+        LOGGER.info('Sending {} to Polyglot.'.format('customparamsdoc'))
+        message = {'set': [{'key': 'customparamsdoc', 'value': html}]}
+        self.send(message, 'custom')
 
     def getNetworkInterface(self, interface='default'):
         """
@@ -989,7 +848,8 @@ class Interface(object):
         LOGGER.debug('check_profile: force={} build_profile={}'.format(
             force, build_profile))
 
-        cdata = deepcopy(self.custom.get('idata')) or {}
+        """ FIXME: this should be from self._ifaceData """
+        cdata = self._ifaceData.profile_version
 
         LOGGER.debug('check_profile:   saved_version={}'.format(cdata))
         LOGGER.debug('check_profile: profile_version={}'.format(
@@ -1004,17 +864,17 @@ class Interface(object):
         if force:
             LOGGER.warning('check_profile: Force is enabled.')
             update_profile = True
-        elif not 'profile_version' in cdata:
+        elif cdata is None:
             LOGGER.info(
                 'check_profile: Updated needed since it has never been recorded.')
             update_profile = True
-        elif isinstance(cdata, dict) and self.serverdata['profile_version'] == cdata['profile_version']:
+        elif isinstance(cdata, dict) and self.serverdata['profile_version'] == cdata:
             LOGGER.info('check_profile: No updated needed: "{}" == "{}"'.format(
-                self.serverdata['profile_version'], cdata['profile_version']))
+                self.serverdata['profile_version'], cdata))
             update_profile = False
         else:
             LOGGER.info('check_profile: Updated needed: "{}" == "{}"'.format(
-                self.serverdata['profile_version'], cdata['profile_version']))
+                self.serverdata['profile_version'], cdata))
             update_profile = True
         
         if update_profile:
@@ -1024,9 +884,7 @@ class Interface(object):
 
             st = self.updateProfile()
 
-            cdata['profile_version'] = serverdata['profile_version']
-            self.custom['idata'] = cdata
-            self._saveCustom('idata')
+            self._ifaceData.profile_version = serverdata['profile_version']
 
         return update_profile
 
