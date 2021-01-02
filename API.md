@@ -209,27 +209,49 @@ delNode() directly on the node itself, which has the same effect.
 
 updateProfile(), Sends the latest profile to ISY from the profile folder.
 
-getNotices(), Returns the current list of Polyglot notices.
 
-addNotice(key, text), Adds a notice to the Polyglot UI. The key allows to refer to that notice later on.
+setCustomParamsDoc(md_doc), allows you to set the markdown help file for your params. 
 
-addNoticeTemp(key, text, delaySec), Adds a notice to the Polyglot UI. The notice will be active for delaySec seconds.
+Here's an example using a markdown file.
 
-removeNotice(key), Remove notice specified by the key.
+```python
+import markdown2
+import os
 
-removeNoticesAll(), Removes all notices from Polyglot.
+configurationHelp = './configdoc.md';
 
-getCustomParams(), Returns all the configuration parameters from the UI.
+if os.path.isfile(configurationHelp):
+	cfgdoc = markdown2.markdown_path(configurationHelp)
+	poly.setCustomParamsDoc(cfgdoc)
+```
 
-getCustomParam(key), Returns the param as seen in the UI.
 
-saveCustomParams(params), Saves the params as specified by the params objects. All the params not passed here will be lost.
+send(), send a message to Polyglot directly.
 
-addCustomParams(params), Adds custom params specified by the params objects. This will be added to the existing params.
+restart(), allows you to self restart the NodeServer.
 
-removeCustomParams(key), Removed the custom param specified by the key.
+stop(), drop the connection with Polyglot and send a notice to the nodeserver to stop running.
 
-saveTypedParams(typedParams), Saves the typed params specified by the typedParams object.  This replaces any existing typed parameters
+updateProfile(), send the current profile files to the ISY.
+
+checkProfile(), compare the profile version in server.json with the installed version and update the ISY if the installed version is behind.
+
+getNetworkInterface(), get the network interface the node server is running on.
+
+getLogLevel(), get the currently configured log level. This is the level that Polyglot has saved in it's database.  The node server may have changed this directly without notifying Polyglot.
+
+setLogLevel(level), send the specified level to Polyglot to store in its database. This level will then be sent back to the node server and set as the current log level.
+
+runForever(), run the main message handling loop.  This waits for messages from polyglot and appropriately notifies the node server.
+
+The Interface class has the following public Custom class objects:
+
+self.Notices     - persistent data storage for notices
+self.Parameters  - persistent data storage for custom parameters
+self.TypedParams - persistent data storage for custom typed parameters
+self.Custom      - persistent data storage for node server data
+
+See below for the Custom class API
 
 Here's an example
 ```python
@@ -258,51 +280,26 @@ typedParams = [
   # { name: 'list', title: 'List of values', isList:true }
 ]
 
-poly.saveTypedParams(typedParams)
+poly.TypedParams.config = typedParams
 ```
 
 
-setCustomParamsDoc(md_doc), allows you to set the markdown help file for your params. 
+### The Custom class
 
-Here's an example using a markdown file.
+The Custom class is used to create persistent data storage containers. It
+implements a data type similar to a dict but with enhancements. It has the
+following API
 
-```python
-import markdown2
-import os
-
-configurationHelp = './configdoc.md';
-
-if os.path.isfile(configurationHelp):
-	cfgdoc = markdown2.markdown_path(configurationHelp)
-	poly.setCustomParamsDoc(cfgdoc)
-```
-
-
-saveCustomData(data), allows you to save data for your node server. This will overwrite the existing data.
-
-addCustomData(data), allows you to save data for your node server. This will add to your existing data, as long as the keys are different.
-
-getCustomData(key = null), gives you all of your custom data, or a specific key if specified.
-
-removeCustomData(key), allows you to delete custom data.
-
-send(), send a message to Polyglot directly.
-
-restart(), allows you to self restart the NodeServer.
-
-stop(), drop the connection with Polyglot and send a notice to the nodeserver to stop running.
-
-updateProfile(), send the current profile files to the ISY.
-
-checkProfile(), compare the profile version in server.json with the installed version and update the ISY if the installed version is behind.
-
-getNetworkInterface(), get the network interface the node server is running on.
-
-getLogLevel(), get the currently configured log level. This is the level that Polyglot has saved in it's database.  The node server may have changed this directly without notifying Polyglot.
-
-setLogLevel(level), send the specified level to Polyglot to store in its database. This level will then be sent back to the node server and set as the current log level.
-
-runForever(), run the main message handling loop.  This waits for messages from polyglot and appropriately notifies the node server.
+Custom.key = value     - add a new key/value pair 
+Custom[key] = value    - add a new key/value pair.  key can be a variable.
+Custom.load(data)      - insert data into the container. 'data' should be a dict of key/value pairs.
+Custom.delete(key)     - delete the value associated with key
+Custom.clear()         - delete all key/value pairs
+Custom.keys()          - return a list of keys
+Custom.values()        - return a list of values
+Custom.isChanged(key)  - true if the value for key was changed during load()
+Custom.isNew(key)      - true if the key/value was added during load()
+custom.dump()          - return the raw dict, for debugging
 
 ### Creating nodes
 

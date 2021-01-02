@@ -92,6 +92,7 @@ class Interface(object):
         self.__customTypedParamsObservers = []
         self.__customDataObservers = []
         self.__customNoticeObservers = []
+        self.__customNsDataObservers = []
         Interface.__exists = True
         self.custom_params_docs_file_sent = False
         self.custom_params_pending_docs = ''
@@ -113,15 +114,25 @@ class Interface(object):
             self.network_interface = False
             LOGGER.error(
                 'Failed to determine Network Interface', exc_info=True)
+
+        """ FIXME:  This doesn't work, nodeClasses remains empty
+            Our name space doesn't include any of the node classes.
+            The node.js interface is passed an array of node classes
+            when it initializes.
+        """
         self._nodeClasses = {}
-        self._nodeClasses = dict([(name, cls) for name, cls in self.__dict__.items() if isinstance(cls, type)])
-        LOGGER.info('Found classes: {}'.format(self._nodeClasses))
 
     def onConfig(self, callback):
         """
         Gives the ability to bind any methods to be run when the config is received.
         """
         self.__configObservers.append(callback)
+    def _onConfig(self, data):
+        try:
+            for watcher in self.__configObservers:
+                Thread(target=watcher, args=[data]).start()
+        except KeyError as e:
+            LOGGER.exception('KeyError in config: {}'.format(e), exc_info=True)
 
     def onStart(self, callback):
         """
@@ -154,6 +165,12 @@ class Interface(object):
         custom parameters are received.
         """
         self.__customParamsObservers.append(callback)
+    def _onCustomParams(self, data):
+        try:
+            for watcher in self.__customParamsObservers:
+                watcher(data)
+        except KeyError as e:
+            LOGGER.exception('KeyError in customparams: {}'.format(e), exc_info=True)
 
     def onCustomTypedParams(self, callback):
         """
@@ -161,6 +178,12 @@ class Interface(object):
         custom typed parameters are received.
         """
         self.__customTypedParamsObservers.append(callback)
+    def _onCustomTypedParams(self, data):
+        try:
+            for watcher in self.__customTypedParamsObservers:
+                watcher(data)
+        except KeyError as e:
+            LOGGER.exception('KeyError in customtypedparams: {}'.format(e), exc_info=True)
 
     def onCustomData(self, callback):
         """
@@ -168,6 +191,12 @@ class Interface(object):
         custom data is received.
         """
         self.__customDataObservers.append(callback)
+    def _onCustomData(self, data):
+        try:
+            for watcher in self.__customDataObservers:
+                watcher(data)
+        except KeyError as e:
+            LOGGER.exception('KeyError in customdata: {}'.format(e), exc_info=True)
 
     def onCustomNotice(self, callback):
         """
@@ -175,6 +204,19 @@ class Interface(object):
         notice is received.
         """
         self.__customNoticeObservers.append(callback)
+    def _onCustomNotice(self, data):
+        try:
+            for watcher in self.__customNoticeObservers:
+                watcher(data)
+        except KeyError as e:
+            LOGGER.exception('KeyError in notice: {}'.format(e), exc_info=True)
+
+    def onCustomNsData(self, callback):
+        """
+        Gives the ability to bind any methods to be run when a
+        unknown data type is received.
+        """
+        self.__customNsDataObservers.append(callback)
 
     def _connect(self, mqttc, userdata, flags, rc):
         """
@@ -276,14 +318,25 @@ class Interface(object):
 
                                 if custom.get('key') == 'notices':
                                     self.Notices.load(value)
+                                    self._onCustomNotice(value)
                                 elif custom.get('key') == 'customparams':
                                     self.Parameters.load(value)
+                                    self._onCustomParams(value)
                                 elif custom.get('key') == 'customtypedparams':
                                     self.TypedParams.load(value)
+                                    self._onCustomTypedParams(value)
                                 elif custom.get('key') == 'customdata':
                                     self.Custom.load(value)
+                                    self._onCustomData(value)
                                 elif custom.get('key') == 'idata':
                                     self._ifaceData.load(value)
+                                else:
+                                    LOGGER.critical('Key {} should be passed to node server.'.format(custom.get('key')))
+                                    try:
+                                        for watcher in self.__customNsDataObservers:
+                                            watcher(custom.get('key'), value)
+                                    except KeyError as e:
+                                        LOGGER.exception('KeyError in getAll: {}'.format(e), exc_info=True)
                             except ValueError as e:
                                 LOGGER.error('Failure trying to load {} data'.format(custom.get('key')))
 
@@ -302,11 +355,7 @@ class Interface(object):
 
                     self.Custom.load(value)
 
-                    try:
-                        for watcher in self.__customDataObservers:
-                            watcher(value)
-                    except KeyError as e:
-                        LOGGER.exception('KeyError in customData: {}'.format(e), exc_info=True)
+                    self._onCustomData(value)
                 elif key == 'customparams':
                     LOGGER.debug('customParams: {}'.format(parsed_msg[key]))
                     """
@@ -320,11 +369,7 @@ class Interface(object):
 
                     self.Parameters.load(value)
 
-                    try:
-                        for watcher in self.__customParamsObservers:
-                            watcher(value)
-                    except KeyError as e:
-                        LOGGER.exception('KeyError in customParams: {}'.format(e), exc_info=True)
+                    self._onCustomParams(value)
                 elif key == 'customtypedparams':
                     """
                     TODO: can we detect which parameters are new/changed
@@ -336,11 +381,7 @@ class Interface(object):
                     except ValueError as e:
                         value = parsed_msg[key].get('value')
 
-                    try:
-                        for watcher in self.__customTypedParamsObservers:
-                            watcher(value)
-                    except KeyError as e:
-                        LOGGER.exception('KeyError in customTypedParams: {}'.format(e), exc_info=True)
+                    self._onCustomTypedParams(value)
                 elif key == 'notices':
                     """
                     TODO: can we detect which parameters are new/changed
@@ -355,12 +396,8 @@ class Interface(object):
 
                     """ Load new notices data into class """
                     self.Notices.load(value)
+                    self._onCustomNotice(value)
 
-                    try:
-                        for watcher in self.__customNoticeObservers:
-                            watcher(value)
-                    except KeyError as e:
-                        LOGGER.exception('KeyError in notices: {}'.format(e), exc_info=True)
                 elif key == 'installprofile':
                     LOGGER.debug('Profile installation finished')
                 elif key == 'error':
@@ -542,14 +579,18 @@ class Interface(object):
 
                 # if this node doesn't exist yet, create it
                 if address not in self._nodes:
-                    nodeClass = self._nodeClasses[n.nodedef]
-                    primary = n.primary.slice(5)
+                    LOGGER.info('~~~~ {}'.format(n))
+                    primary = n['primaryNode']
 
-                    if nodeClass:
-                        node = nodeClass(self, primary, address, n.name)
-                        self._nodes[address] = node
-                    else:
-                        LOGGER.error('Config node with address {} has invalid class {}'.format(address, n.nodedef))
+                    try:
+                        nodeClass = self._nodeClasses[n['nodeDefId']]
+                        if nodeClass:
+                            node = nodeClass(self, primary, address, n['name'])
+                            self._nodes[address] = node
+                        else:
+                            LOGGER.error('Config node with address {} has invalid class {}'.format(address, n.nodedef))
+                    except Exception as e:
+                        LOGGER.error('No node class defined for nodedef {}'.format(n['nodeDefId']))
                 else:
                     node = self._nodes[address]
 
@@ -565,12 +606,7 @@ class Interface(object):
             LOGGER.debug('Setting log level to {}'.format(self.currentLogLevel))
             LOGGER.setLevel(self.currentLogLevel)
 
-        try:
-            for watcher in self.__configObservers:
-                # start a thread to prevent deadlocks, do we still need this?
-                Thread(target=watcher, args=[config]).start()
-        except KeyError as e:
-            LOGGER.error('KeyError in gotConfig: {}'.format(e), exc_info=True)
+        self._onConfig(config)
 
         if self.isInitialConfig:
             # Notify the node server that it's time to start.
