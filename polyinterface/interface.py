@@ -22,7 +22,7 @@ from threading import Thread, current_thread
 import time
 import netifaces
 from .polylogger import LOGGER
-from .notices import Notices
+from .custom import Custom
 
 DEBUG = False
 
@@ -96,7 +96,9 @@ class Interface(object):
         Interface.__exists = True
         self.custom_params_docs_file_sent = False
         self.custom_params_pending_docs = ''
-        self.Notices = Notices(self)
+        self.Notices = Custom(self, 'notices')
+        self.Parameters = Custom(self, 'customparams')
+        self.TypedParams = Custom(self, 'customtypedparams')
         try:
             self.network_interface = self.getNetworkInterface()
             LOGGER.info('Connect: Network Interface: {}'.format(
@@ -258,12 +260,20 @@ class Interface(object):
                     custom keys should include notices, customparams, 
                     customtypedparams, customdata
                     """
+                    LOGGER.debug('PROCESS getAll message from Polyglot')
                     if isinstance(parsed_msg[key], list):
                         for custom in parsed_msg[key]:
                             LOGGER.debug(
                                 'Received {} from database'.format(custom.get('key')))
                             try:
+                                # TODO: Update Notices and Parameters??
                                 value = json.loads(custom.get('value'))
+
+                                if custom.get('key') == 'notices':
+                                    self.Notices.load(value)
+                                elif custom.get('key') == 'customparams':
+                                    self.Parameters.load(value)
+
                                 self.custom[custom.get('key')] = value
                             except ValueError as e:
                                 self.custom[custom.get(
@@ -295,10 +305,11 @@ class Interface(object):
                     and mark them here before sending to ns?
                     """
                     try:
-                        value = json.loads(parsed_msg[key].get('value'))
+                        value = json.loads(parsed_msg[key])
                     except ValueError as e:
                         value = parsed_msg[key].get('value')
 
+                    self.Parameters.load(value)
                     self.custom[key] = value
 
                     try:
@@ -330,8 +341,9 @@ class Interface(object):
                     and mark them here before sending to ns?
                     """
                     LOGGER.debug('notices: {}'.format(parsed_msg[key]))
+
                     try:
-                        value = json.loads(parsed_msg[key].get('value'))
+                        value = json.loads(parsed_msg[key])
                     except ValueError as e:
                         value = parsed_msg[key].get('value')
 
@@ -557,6 +569,7 @@ class Interface(object):
 
         if 'logLevel' in config:
             self.currentLogLevel = config['logLevel'].upper()
+            LOGGER.debug('Setting log level to {}'.format(self.currentLogLevel))
             LOGGER.setLevel(self.currentLogLevel)
 
         try:
@@ -565,6 +578,15 @@ class Interface(object):
                 Thread(target=watcher, args=[config]).start()
         except KeyError as e:
             LOGGER.error('KeyError in gotConfig: {}'.format(e), exc_info=True)
+
+        if self.isInitialConfig:
+            # Notify the node server that it's time to start.
+            try:
+                for watcher in self.__startObservers:
+                    Thread(target=watcher, args=[]).start()
+            except KeyError as e:
+                LOGGER.exception(
+                    'KeyError in start: {}'.format(e), exc_info=True)
 
 
     def _parseInput(self):
@@ -647,13 +669,6 @@ class Interface(object):
             thread.start()
 
         self._get_server_data()
-
-        try:
-            for watcher in self.__startObservers:
-                watcher()
-        except KeyError as e:
-            LOGGER.exception(
-                'KeyError in start: {}'.format(e), exc_info=True)
 
     def isConnected(self):
         """ Tells you if this nodeserver and Polyglot are connected via MQTT """

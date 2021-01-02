@@ -31,6 +31,7 @@ import netifaces
 from .polylogger import LOGGER
 from .interface import Interface
 from .node import Node
+from .custom import Custom
 
 DEBUG = False
 PY2 = sys.version_info[0] == 2
