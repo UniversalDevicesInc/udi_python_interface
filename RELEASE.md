@@ -1,4 +1,4 @@
-# UDI Polyglot v2 Interface Module Releases
+# UDI Polyglot v3 Python Interface Module Releases
 
 We will now be doing official releases of this interface.
 
@@ -27,7 +27,7 @@ Use NumPy/SciPy Docstrings
 ## Generating a Release
 
 The releases are handled by Github actions
-- Go to [polyglot-v2-pyhton-interface Releases](https://github.com/UniversalDevicesInc/polyglot-v2-python-interface/releases)
+- Go to [udi-pyhton-interface Releases](https://github.com/UniversalDevicesInc/udi-python-interface/releases)
 - Click 'Draft a new release'
 - Set Tag version to the relese with a v prefix, e.g. v2.1.0
 - Target: should always be master

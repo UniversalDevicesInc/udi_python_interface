@@ -1,6 +1,6 @@
 #!/bin/bash
 
-module=polyinterface
+module=udi_interface
 idx=https://pypi.org/pypi
 if [[ "$1" == "-t" ]]; then
   idx=https://test.pypi.org/pypi

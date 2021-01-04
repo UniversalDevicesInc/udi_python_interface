@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 """
-Python Interface for UDI Polyglot v2 NodeServers
-by Einstein.42 (James Milne) milne.james@gmail.com
+Python Interface for UDI Polyglot v3 NodeServers
+
+Authors:
+  James Milne milne.james@gmail.com
+  Bob Paauwe bpaauwe@yahoo.com
+  
 """
 
 import warnings

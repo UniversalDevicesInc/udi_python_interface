@@ -2,10 +2,10 @@ from distutils.core import setup
 from setuptools import find_packages
 import re
 
-with open("polyinterface/__init__.py") as meta_file:
+with open("udi_interface/__init__.py") as meta_file:
     metadata = dict(re.findall("__([a-z]+)__\s*=\s*'([^']+)'", meta_file.read()))
 
-setup(name='polyinterface',
+setup(name='udi_interface',
     version=metadata['version'],
     description=metadata['description'],
     url=metadata['url'],
@@ -34,9 +34,10 @@ setup(name='polyinterface',
 
         # Specify the Python versions you support here. In particular, ensure
         # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6'
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.9'
     ])

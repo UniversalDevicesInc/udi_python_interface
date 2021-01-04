@@ -1,10 +1,10 @@
 import unittest
-import polyinterface
+import udi_interface
 
 class TestPoly(unittest.TestCase):
 
     def test_poly(self):
-        polyglot = polyinterface.Interface('Test')
+        polyglot = udi_interface.Interface('Test')
         print(polyglot.network_interface)
         #polyglot.assertIsInstance(polyglot, polyinterface.Interface)
 
