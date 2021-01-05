@@ -97,12 +97,6 @@ class Interface(object):
         self.custom_params_docs_file_sent = False
         self.custom_params_pending_docs = ''
 
-        """ public properties """
-        self.Notices = Custom(self, 'notices')
-        self.Parameters = Custom(self, 'customparams')
-        self.TypedParams = Custom(self, 'customtypedparams')
-        self.Custom = Custom(self, 'customdata')
-
         """ persistent data storage for Interface """
         self._ifaceData = Custom(self, 'idata')  # Interface data
 
@@ -317,16 +311,12 @@ class Interface(object):
                                 value = json.loads(custom.get('value'))
 
                                 if custom.get('key') == 'notices':
-                                    self.Notices.load(value)
                                     self._onCustomNotice(value)
                                 elif custom.get('key') == 'customparams':
-                                    self.Parameters.load(value)
                                     self._onCustomParams(value)
                                 elif custom.get('key') == 'customtypedparams':
-                                    self.TypedParams.load(value)
                                     self._onCustomTypedParams(value)
                                 elif custom.get('key') == 'customdata':
-                                    self.Custom.load(value)
                                     self._onCustomData(value)
                                 elif custom.get('key') == 'idata':
                                     self._ifaceData.load(value)
@@ -353,8 +343,6 @@ class Interface(object):
                     except ValueError as e:
                         value = parsed_msg[key].get('value')
 
-                    self.Custom.load(value)
-
                     self._onCustomData(value)
                 elif key == 'customparams':
                     LOGGER.debug('customParams: {}'.format(parsed_msg[key]))
@@ -367,7 +355,6 @@ class Interface(object):
                     except ValueError as e:
                         value = parsed_msg[key].get('value')
 
-                    self.Parameters.load(value)
 
                     self._onCustomParams(value)
                 elif key == 'customtypedparams':
@@ -395,7 +382,6 @@ class Interface(object):
                         value = parsed_msg[key].get('value')
 
                     """ Load new notices data into class """
-                    self.Notices.load(value)
                     self._onCustomNotice(value)
 
                 elif key == 'installprofile':
