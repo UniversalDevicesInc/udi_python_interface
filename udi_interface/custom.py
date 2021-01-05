@@ -31,7 +31,7 @@ class Custom(dict):
         message = {'set': [{'key': key, 'value': self.__dict__['_rawdata']}]}
         self.poly.send(message, 'custom')
 
-    def load(self, new_data):
+    def load(self, new_data, save=False):
         """
         FIXME: this is used to update the internal data
         structure from Polyglot's database.  Should this
@@ -57,6 +57,8 @@ class Custom(dict):
             self.__dict__['_extradata'][key] = edata
 
         self.__dict__['_rawdata'] = new_data
+        if save:
+            self._save()
 
     def __setattr__(self, key, notice):
         self.__dict__['_rawdata'][key] = notice

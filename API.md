@@ -292,7 +292,7 @@ following API
 
 Custom.key = value     - add a new key/value pair 
 Custom[key] = value    - add a new key/value pair.  key can be a variable.
-Custom.load(data)      - insert data into the container. 'data' should be a dict of key/value pairs.
+Custom.load(data, save)- insert data into the container. 'data' should be a dict of key/value pairs.  If save is true, data is sent to Polyglot
 Custom.delete(key)     - delete the value associated with key
 Custom.clear()         - delete all key/value pairs
 Custom.keys()          - return a list of keys
