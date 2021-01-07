@@ -1,4 +1,6 @@
 import datetime as dt
+import time
+from copy import deepcopy
 
 class Node(object):
     """
@@ -15,7 +17,7 @@ class Node(object):
             self.drivers = deepcopy(self.drivers)
             self.isPrimary = None
             self.config = None
-            self.timeAdded = dt.Now()
+            self.timeAdded = dt.datetime.now()
             self.enabled = None
             self.added = None
         except (KeyError) as err:
