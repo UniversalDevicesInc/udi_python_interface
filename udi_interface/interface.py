@@ -727,8 +727,8 @@ class Interface(object):
         Get Node by Address of existing nodes. 
         """
         try:
-            if address in self._node:
-                    return self._node[address]
+            if address in self._nodes:
+                    return self._nodes[address]
             return None
         except KeyError:
             LOGGER.error(
