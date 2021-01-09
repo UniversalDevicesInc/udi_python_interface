@@ -182,11 +182,15 @@ are passed as a parameter.
 The longPoll parameter is a flag telling you if this is a long poll or short
 poll.
 
-`onStart` is triggered whenever the node server is started.
+`onStart` is triggered and runs the node's start method when the node has been added.
 
 `onStop` is triggered whenever the node server is being stopped.
 
 `onDelete` is triggered whenever the user is deleting the NodeServer.
+
+`onStartDone` is triggered whenever a node's start method completes.
+
+`onAddNodeDone` is triggered whenever a node add has finished.
 
 ##### The Interface class methods
 
@@ -244,14 +248,22 @@ setLogLevel(level), send the specified level to Polyglot to store in its databas
 
 runForever(), run the main message handling loop.  This waits for messages from polyglot and appropriately notifies the node server.
 
-The Interface class has the following public Custom class objects:
+### The Custom class
 
-self.Notices     - persistent data storage for notices
-self.Parameters  - persistent data storage for custom parameters
-self.TypedParams - persistent data storage for custom typed parameters
-self.Custom      - persistent data storage for node server data
+The Custom class is used to create persistent data storage containers. It
+implements a data type similar to a dict but with enhancements. It has the
+following API
 
-See below for the Custom class API
+Custom.key = value     - add a new key/value pair 
+Custom[key] = value    - add a new key/value pair.  key can be a variable.
+Custom.load(data, save)- insert data into the container. 'data' should be a dict of key/value pairs.  If save is true, data is sent to Polyglot
+Custom.delete(key)     - delete the value associated with key
+Custom.clear()         - delete all key/value pairs
+Custom.keys()          - return a list of keys
+Custom.values()        - return a list of values
+Custom.isChanged(key)  - true if the value for key was changed during load()
+Custom.isNew(key)      - true if the key/value was added during load()
+custom.dump()          - return the raw dict, for debugging
 
 Here's an example
 ```python
@@ -280,26 +292,8 @@ typedParams = [
   # { name: 'list', title: 'List of values', isList:true }
 ]
 
-poly.TypedParams.config = typedParams
+self.TypedParams.config = typedParams
 ```
-
-
-### The Custom class
-
-The Custom class is used to create persistent data storage containers. It
-implements a data type similar to a dict but with enhancements. It has the
-following API
-
-Custom.key = value     - add a new key/value pair 
-Custom[key] = value    - add a new key/value pair.  key can be a variable.
-Custom.load(data, save)- insert data into the container. 'data' should be a dict of key/value pairs.  If save is true, data is sent to Polyglot
-Custom.delete(key)     - delete the value associated with key
-Custom.clear()         - delete all key/value pairs
-Custom.keys()          - return a list of keys
-Custom.values()        - return a list of values
-Custom.isChanged(key)  - true if the value for key was changed during load()
-Custom.isNew(key)      - true if the key/value was added during load()
-custom.dump()          - return the raw dict, for debugging
 
 ### Creating nodes
 

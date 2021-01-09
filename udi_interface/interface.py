@@ -85,7 +85,9 @@ class Interface(object):
         self.polyglotConnected = False
         self.__configObservers = []
         self.__stopObservers = []
-        self.__startObservers = []
+        self.__startObservers = {}
+        self.__startDoneObservers = []
+        self.__nodeAddDoneObservers = []
         self.__deleteObservers = []
         self.__pollObservers = []
         self.__customParamsObservers = []
@@ -128,12 +130,26 @@ class Interface(object):
         except KeyError as e:
             LOGGER.exception('KeyError in config: {}'.format(e), exc_info=True)
 
-    def onStart(self, callback):
+    def onStart(self, address, callback):
         """
         Gives the ability to bind any methods to be run when the interface is
         started.
         """
-        self.__startObservers.append(callback)
+        self.__startObservers[address] = callback
+
+    def onStartDone(self, callback):
+        """
+        Gives the ability to bind any methods to be run when the node's  
+        start method has finished.
+        """
+        self.__startDoneObservers.append(callback)
+
+    def onAddNodeDone(self, callback):
+        """
+        Gives the ability to bind any methods to be run when the node's  
+        start method has finished.
+        """
+        self.__nodeAddDoneObservers.append(callback)
 
     def onStop(self, callback):
         """
@@ -321,7 +337,7 @@ class Interface(object):
                                 elif custom.get('key') == 'idata':
                                     self._ifaceData.load(value)
                                 else:
-                                    LOGGER.critical('Key {} should be passed to node server.'.format(custom.get('key')))
+                                    LOGGER.debug('Key {} should be passed to node server.'.format(custom.get('key')))
                                     try:
                                         for watcher in self.__customNsDataObservers:
                                             watcher(custom.get('key'), value)
@@ -594,15 +610,33 @@ class Interface(object):
 
         self._onConfig(config)
 
+        """
         if self.isInitialConfig:
-            # Notify the node server that it's time to start.
-            try:
-                for watcher in self.__startObservers:
-                    Thread(target=watcher, args=[]).start()
-            except KeyError as e:
-                LOGGER.exception(
-                    'KeyError in start: {}'.format(e), exc_info=True)
+            tried starting the node here, but this really only works
+            for the controller node.  And it is just slightly earlier
+            than the doing it in the _handleResult after being notified
+            that the node was added in Polyglot.
+        """
 
+
+    """
+    This is a wrapper for the node start method.  We wrap this so 
+    that we know when the method has finished and we can then notify
+    an wathers that the start method has finished.
+    """
+    def _startNode(self, node_start_method, address):
+        # Run the nodes start function now.
+        if node_start_method:
+            node_start_method()
+
+        # start has finished. Do we know which one this is?
+        try:
+            for watcher in self.__startDoneObservers:
+                LOGGER.debug('Calling startDone for {}'.format(address))
+                watcher(address)
+        except KeyError as e:
+            LOGGER.exception(
+                'KeyError in _startNode: {}'.format(e), exc_info=True)
 
     def _parseInput(self):
         while True:
@@ -663,12 +697,36 @@ class Interface(object):
                 self.status()
 
     def _handleResult(self, result):
-        LOGGER.debug('handle results: {}'.format(result))
         try:
             if result.get('address'):
-                # Call node's start function
-                #self._nodes.get(result.get('address')).start()
-                LOGGER.debug('What do we do with the results???')
+                """
+                We get here when Polyglot has finished adding the node
+                to the ISY and database (or verifying that the node
+                is correct in both).  
+
+                Now's the time to run the node's start() method which
+                was configured by the node server using the onStart()
+                callback.
+                """
+                try:
+                    # need to limit this by address.
+                    for addr in self.__startObservers:
+                        if addr == result.get('address'):
+                            Thread(target=self._startNode, args=[self.__startObservers[addr], addr]).start()
+                except KeyError as e:
+                    LOGGER.exception(
+                        'KeyError in start: {}'.format(e), exc_info=True)
+
+
+                LOGGER.debug('add node response: {}'.format(result))
+
+
+                # Notify listeners that node has been added
+                try:
+                    for watcher in self.__nodeAddDoneObservers:
+                        watcher(result)
+                except KeyError as e:
+                    LOGGER.exception('KeyError in NodeDone: {}'.format(e), exc_info=True)
             else:
                 del self._nodes[result.get('address')]
         except (KeyError, ValueError) as err:
@@ -708,6 +766,12 @@ class Interface(object):
         }
         self.send(message, 'command')
         self._nodes[node.address] = node
+
+        """
+        This is too early to call the node's start function. At this point
+        we may not have receiced anything configuration from Polyglot and
+        the start function typically needs that info.
+        """
 
     def getConfig(self):
         """ Returns a copy of the last config received. """
