@@ -1,6 +1,8 @@
 import datetime as dt
 import time
 from copy import deepcopy
+from operator import itemgetter
+from .polylogger import LOGGER
 
 class Node(object):
     """
@@ -50,31 +52,36 @@ class Node(object):
 
     def setDriver(self, driver, value, report=True, force=False, uom=None):
         """ Update the driver's value and when report=True, update the ISY """
-        if uom != None and drivers[driver]['uom'] != uom:
-            drivers[driver]['uom'] = uom
-            drivers[driver]['changed'] = True
+        changed = False
+        drv = next((item for (item,d) in enumerate(self.drivers) if d['driver'] == driver), None)
+        if uom != None and self.drivers[drv]['uom'] != uom:
+            self.drivers[drv]['uom'] = uom
+            changed = True
 
-        if drivers[driver]['value'] != value:
-            drivers[driver]['value'] = uom
-            drivers[driver]['changed'] = True
+        if self.drivers[drv]['value'] != value:
+            self.drivers[drv]['value'] = value
+            changed = True
 
-        if report:
+        if report and (changed or force):
+            LOGGER.debug('Reporting set {} to {} to Polyglot'.format(driver, value))
             self.reportDriver(driver, force)
+        else:
+            LOGGER.debug('No change in {}\'s value'.format(driver))
 
     def reportDriver(self, driver, force):
         """ Send existing driver value to ISY """
-        if driver in drivers:
-            if drivers[driver]['changed'] or force:
-                message = {
-                    'set': [{
-                        'address': self.address,
-                        'driver': driver['driver'],
-                        'value': str(driver['value']),
-                        'uom': driver['uom']
-                    }]
-                }
-                self.poly.send(message, 'status')
-                drivers[driver]['changed'] = False
+        drv = next((item for (item,d) in enumerate(self.drivers) if d['driver'] == driver), None)
+        if drv is not None:
+            message = {
+                'set': [{
+                    'address': self.address,
+                    'driver': self.drivers[drv]['driver'],
+                    'value': str(self.drivers[drv]['value']),
+                    'uom': self.drivers[drv]['uom']
+                }]
+            }
+            LOGGER.debug('Updating value to {}'.format(self.drivers[drv]['value']))
+            self.poly.send(message, 'status')
 
     def reportDrivers(self):
         LOGGER.info('Updating All Drivers to ISY for {}({})'.format(
