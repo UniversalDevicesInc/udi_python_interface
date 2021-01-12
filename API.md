@@ -254,16 +254,25 @@ The Custom class is used to create persistent data storage containers. It
 implements a data type similar to a dict but with enhancements. It has the
 following API
 
-Custom.key = value     - add a new key/value pair 
-Custom[key] = value    - add a new key/value pair.  key can be a variable.
-Custom.load(data, save)- insert data into the container. 'data' should be a dict of key/value pairs.  If save is true, data is sent to Polyglot
-Custom.delete(key)     - delete the value associated with key
-Custom.clear()         - delete all key/value pairs
-Custom.keys()          - return a list of keys
-Custom.values()        - return a list of values
-Custom.isChanged(key)  - true if the value for key was changed during load()
-Custom.isNew(key)      - true if the key/value was added during load()
-custom.dump()          - return the raw dict, for debugging
+`Custom.key = value`     - add a new key/value pair 
+
+`Custom[key] = value `   - add a new key/value pair.  key can be a variable.
+
+`Custom.load(data, save)`- insert data into the container. 'data' should be a dict of key/value pairs.  If save is true, data is sent to Polyglot
+
+`Custom.delete(key)`     - delete the value associated with key
+
+`Custom.clear()`         - delete all key/value pairs
+
+`Custom.keys()`          - return a list of keys
+
+`Custom.values()`        - return a list of values
+
+`Custom.isChanged(key)`  - true if the value for key was changed during load()
+
+`Custom.isNew(key)`      - true if the key/value was added during load()
+
+`custom.dump()`          - return the raw dict, for debugging
 
 Here's an example
 ```python
