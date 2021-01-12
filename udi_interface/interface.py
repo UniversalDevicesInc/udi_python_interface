@@ -753,7 +753,7 @@ class Interface(object):
 
         :param node: Dictionary of node settings. Keys: address, name, node_def_id, primary, and drivers are required.
         """
-        LOGGER.info('Adding node {}({})'.format(node.name, node.address))
+        LOGGER.info('Adding node {}({}) [{}]'.format(node.name, node.address, node.private))
         message = {
             'addnode': [{
                 'address': node.address,
@@ -761,7 +761,8 @@ class Interface(object):
                 'nodeDefId': node.id,
                 'primaryNode': node.primary,
                 'drivers': node.drivers,
-                'hint': node.hint
+                'hint': node.hint,
+                'private': node.private
             }]
         }
         self.send(message, 'command')

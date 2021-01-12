@@ -22,6 +22,7 @@ class Node(object):
             self.timeAdded = dt.datetime.now()
             self.enabled = None
             self.added = None
+            self.private = None
         except (KeyError) as err:
             LOGGER.error('Error Creating node: {}'.format(err), exc_info=True)
 
@@ -136,4 +137,5 @@ class Node(object):
     drivers = []
     sends = {}
     hint = [0, 0, 0, 0]
+    private = None
 
