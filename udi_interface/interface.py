@@ -21,6 +21,7 @@ import string
 from threading import Thread, current_thread
 import time
 import netifaces
+from .node import Node
 from .polylogger import LOGGER
 from .custom import Custom
 
@@ -41,7 +42,7 @@ class Interface(object):
 
     __exists = False
 
-    def __init__(self, envVar=None):
+    def __init__(self, classes, envVar=None):
         if self.__exists:
             warnings.warn('Only one Interface is allowed.')
             return
@@ -111,12 +112,10 @@ class Interface(object):
             LOGGER.error(
                 'Failed to determine Network Interface', exc_info=True)
 
-        """ FIXME:  This doesn't work, nodeClasses remains empty
-            Our name space doesn't include any of the node classes.
-            The node.js interface is passed an array of node classes
-            when it initializes.
-        """
+        # attempt to build a list of node server custom classes
         self._nodeClasses = {}
+        for c in classes:
+            self._nodeClasses[c.id] = c
 
     def onConfig(self, callback):
         """
@@ -568,6 +567,15 @@ class Interface(object):
 
         self.config = config
 
+        """
+        This code is attempting to build the _nodes list from the
+        nodes defined in the database.  The general idea is to 
+        create the node using the actual node class as defined by
+        the node server, but that doesn't work if the class has
+        additional parameters.
+
+        Does it make sense to just create a generic node instead?
+        """
         # update our internal _nodes list.
         if 'nodes' in config:
             for n in config['nodes']:
@@ -577,11 +585,9 @@ class Interface(object):
                 address = n['address']
                 node = {}
 
-                LOGGER.error('_nodes is type = {}'.format(type(self._nodes)))
-
                 # if this node doesn't exist yet, create it
                 if address not in self._nodes:
-                    LOGGER.info('~~~~ {}'.format(n))
+                    #LOGGER.info('~~~~ {}'.format(n))
                     primary = n['primaryNode']
 
                     try:
@@ -592,16 +598,35 @@ class Interface(object):
                         else:
                             LOGGER.error('Config node with address {} has invalid class {}'.format(address, n.nodedef))
                     except Exception as e:
-                        LOGGER.error('No node class defined for nodedef {}'.format(n['nodeDefId']))
+                        LOGGER.error('Creating node for class {} failed: {}'.format(n['nodeDefId'], e))
+                        node = Node(self, primary, address, n['name'])
+                        node['address'] = n['address']
+                        node['id'] = n['nodeDefId']
+                        node['name'] = n['name']
+                        node['hint'] = n['hint']
+                        node['primary'] = n['primaryNode']
+                        node['private'] = n['private']
+                        node['timeAdded'] = n['timeAdded']
+                        node['timeModified'] = n['timeModified']
+                        node['isPrimary'] = n['isPrimary']
+                        node['enabled'] = n['enabled']
+                        node['drivers'] = []
+
+                        d = []
+                        for drv in n['drivers']:
+                            d.append( {
+                                'driver' : drv['driver'],
+                                'value' : drv['value'],
+                                'uom' : drv['uom'] })
+                        node['drivers'] = d
+
+                        self._nodes[address] = node
+
+                        #TODO: Notify listeners of node?
+
                 else:
                     node = self._nodes[address]
 
-                # TODO: Update any node properties from config list
-                """
-                if node:
-                    for prop in n:
-                        node[prop] = n[prop]
-                """
 
         if 'logLevel' in config:
             self.currentLogLevel = config['logLevel'].upper()

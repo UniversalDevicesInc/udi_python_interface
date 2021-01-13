@@ -199,12 +199,22 @@ start(), to initiate the MQTT connection and start communicating with Polyglot.
 isConnected(), which tells you if this NodeServer and Polyglot are connected via MQTT.
 
 addNode(node), Adds a new node to Polyglot. You fist need to instantiate a
-node using your custom class, which you then pass to addNode. 
+node using your custom class, which you then pass to addNode.  Notes:
+1. Only Node class common information is stored in the database, not your
+ custom class.  
+2. When the interface gets the node information from the Polyglot DB, it
+ creates a generic node and adds it to the node list. This way there is
+ a list of nodes available in the onConfig handler. However, you should
+ still call addNode() for each node to replace the generic node object
+ with your custom node class object.
 
 getConfig(), Returns a copy of the last config received.
 
-getNodes(), Returns your list of nodes. This is not just an array of nodes returned by Polyglot. This is a list of
-nodes with your classes applied to them.
+getNodes(), Returns your list of nodes. The interface will attempt to wrap
+the list of nodes from Polyglot with your custom classes. But this can fail
+if your custom class needs additional parameters when creating the class
+object. Your node server should call addNode() to make sure the objects on
+this list are your custom class objects.
 
 getNode(address), Returns a single node.
 
