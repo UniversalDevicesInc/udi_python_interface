@@ -373,15 +373,10 @@ class Interface(object):
 
                     self._onCustomParams(value)
                 elif key == 'customtypedparams':
-                    """
-                    TODO: can we detect which parameters are new/changed
-                    and mark them here before sending to ns?
-                    """
-                    LOGGER.debug('customTypedParams: {}'.format(parsed_msg[key]))
                     try:
-                        value = json.loads(parsed_msg[key].get('value'))
+                        value = json.loads(parsed_msg[key])
                     except ValueError as e:
-                        value = parsed_msg[key].get('value')
+                        value = parsed_msg[key]
 
                     self._onCustomTypedParams(value)
                 elif key == 'notices':

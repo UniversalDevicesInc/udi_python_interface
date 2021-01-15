@@ -40,6 +40,18 @@ class Custom(dict):
         LOGGER.debug('CUSTOM: load {}'.format(new_data))
 
         """
+        typed parameter data is a bit different so we have to handle
+        it differently.  It's not a key/value pair but just an array
+        of dicts. 
+        """
+        if self.__dict__['custom'] == 'customtypedparams':
+            LOGGER.debug('CUSTOM:  -- typed parameters {}'.format(new_data))
+            self.__dict__['_rawdata'] = new_data
+            if save:
+                self._save()
+            return
+
+        """
         we expect new_data (and _rawdata) to be key/value pairs
         in a dictionary.  Loop through new_data and create the extradata
         dictionary appropriately.
@@ -57,6 +69,7 @@ class Custom(dict):
             self.__dict__['_extradata'][key] = edata
 
         self.__dict__['_rawdata'] = new_data
+
         if save:
             self._save()
 
