@@ -26,6 +26,9 @@ class Node(object):
         except (KeyError) as err:
             LOGGER.error('Error Creating node: {}'.format(err), exc_info=True)
 
+    def __setitem__(self, name, value):
+        self.__dict__[name] = value
+
     def _convertDrivers(self, drivers):
         return deepcopy(drivers)
         """
@@ -46,8 +49,8 @@ class Node(object):
         In node.js interface, this gets the driver object, not value.
 
         """
-        if dv in drivers:
-            return drivers[dv]
+        if dv in self.drivers:
+            return self.drivers[dv]
 
         return None
 
@@ -109,7 +112,7 @@ class Node(object):
         message = {
             'command': [{
                 'address': self.address,
-                'command': command
+                'cmd': command
             }]
         }
         if value is not None and uom is not None:
@@ -119,9 +122,15 @@ class Node(object):
 
     def runCmd(self, command):
         """ Execute the function attached to the command """
-        if command['cmd'] in self.commands:
-            fun = self.commands[command['cmd']]
-            fun(self, command)
+        if 'cmd' in command:
+            if command['cmd'] in self.commands:
+                fun = self.commands[command['cmd']]
+                fun(self, command)
+            else:
+                LOGGER.error('command {} not defined'.format(command['cmd']))
+        else:
+            LOGGER.error('Invalid command message: {}'.format(command))
+
 
     def start(self):
         pass
