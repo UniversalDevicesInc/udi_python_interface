@@ -256,6 +256,8 @@ getLogLevel(), get the currently configured log level. This is the level that Po
 
 setLogLevel(level), send the specified level to Polyglot to store in its database. This level will then be sent back to the node server and set as the current log level.
 
+setLogList(list), Send the list of log levels for the frontend log level list selector. The 'list' is an array of {display_name:LOGLEVEL} objects.  The user will be presented with the 'display_name' and when selected, it will set the log level to LOGLEVEL.  LOGLEVEL must be one of the valid levels supported by the logger or added via the addLevelName method in the logger.
+
 runForever(), run the main message handling loop.  This waits for messages from polyglot and appropriately notifies the node server.
 
 ### The Custom class

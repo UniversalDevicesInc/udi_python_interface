@@ -1005,6 +1005,29 @@ class Interface(object):
         }
         self.send(message, 'system')
 
+    def setLogList(self, levelMap):
+        """
+        The message to Polyglot needs to look like:
+        {'setLogList': {'levels': [{ 'id': 0,
+                                     'name': 'level_name',
+                                     'value': 'LEVEL'}]
+
+        No checking is done to make sure you are specifiying
+        a valid level.
+        """
+        lvls = []
+        cnt = 0
+        for l in levelMap:
+            for k, v in l.items():
+                # Is there a way to check that v is a valid name?
+                lvls.append({'id': cnt, 'name': k, 'value': v})
+                cnt += 1
+
+
+        message = {'setLogList': {'levels': lvls}}
+        LOGGER.debug('Sending message {}'.format(message))
+        self.send(message, 'system')
+
     def supports_feature(self, feature):
         LOGGER.warning('The supports_feature() function is deprecated.')
         return True
