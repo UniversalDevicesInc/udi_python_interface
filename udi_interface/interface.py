@@ -96,6 +96,7 @@ class Interface(object):
         self.__customDataObservers = []
         self.__customNoticeObservers = []
         self.__customNsDataObservers = []
+        self.__isyInfoObservers = []
         Interface.__exists = True
         self.custom_params_docs_file_sent = False
         self.custom_params_pending_docs = ''
@@ -227,9 +228,17 @@ class Interface(object):
         """
         self.__customNsDataObservers.append(callback)
 
+    def onIsyInfo(self, callback):
+        """
+        Gives the ability to bind any methods to be run when a
+        ISY info is received.
+        """
+        self.__isyInfoObservers.append(callback)
+
     def _connect(self, mqttc, userdata, flags, rc):
         """
-        The callback for when the client receives a CONNACK response from the server.
+        The callback for when the client receives a CONNACK response from
+        the server.
         Subscribing in on_connect() means that if we lose the connection and
         reconnect then subscriptions will be renewed.
 

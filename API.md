@@ -316,6 +316,36 @@ typedParams = [
 self.TypedParams.config = typedParams
 ```
 
+### The ISY class
+The ISY class is used to communicate directly with the ISY.  When you 
+create an ISY class object in your node server, the class will take care
+of authenticating and connecting to the ISY for you.  The class has two
+methods available:
+
+'ISY.cmd('rest command')'  - Send a rest command to the ISY and get a response.
+
+'ISY.pyisy()'              - Create a pyisy instance that connects to the ISY
+
+Examples:
+
+```python
+isy = udi_interface.ISY()
+
+response = isy.cmd('/rest/nodes')
+
+""" 
+The response will be the XML formatted node list from the ISY
+"""
+```
+
+```python
+isy = udi_interface.ISY()
+
+pyisy = isy.pyisy()
+for name, node in pyisy.nodes:
+    LOGGER.info('ISY node {} has status {}'.format(name, node.status))
+```
+
 ### Creating nodes
 
 Nodes are created by instantiating one of your node classes, and using the addNode method on the interface:

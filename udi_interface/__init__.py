@@ -5,6 +5,7 @@ from .udi_interface import unload_interface, get_network_interface
 from .node import Node
 from .interface import Interface
 from .custom import Custom
+from .isy import ISY
 
 __version__ = '3.0.0'
 __description__ = 'UDI Python Interface for Polyglot version 3'
