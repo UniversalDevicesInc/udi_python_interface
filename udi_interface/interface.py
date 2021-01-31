@@ -55,6 +55,7 @@ class Interface(object):
         self.config = None
         self.isInitialConfig = False
         self.connected = False
+        self.subscribed = False
         self.uuid = self.pg3init['uuid']
         self.profileNum = str(self.pg3init['profileNum'])
         self.id = '{}_{}'.format(self.uuid, self.profileNum)
@@ -266,7 +267,8 @@ class Interface(object):
                                 " failed. This is unusual. MID: " + str(mid) + " Result: " + str(result))
                     # If subscription fails, try to reconnect.
                     self._mqttc.reconnect()
-            self.send({'getAll': {}}, 'custom')
+
+            self.subscribed = True
         else:
             LOGGER.error("MQTT Failed to connect. Result code: " + str(rc))
 
@@ -483,19 +485,26 @@ class Interface(object):
 
     def send(self, message, type):
         """
-        Formatted Message to send to Polyglot. Connection messages are sent automatically from this module
-        so this method is used to send commands to/from Polyglot and formats it for consumption
+        Formatted Message to send to Polyglot. Connection messages are sent
+        automatically from this module so this method is used to send commands
+        to/from Polyglot and formats it for consumption
         """
         if not isinstance(message, dict) and self.connected:
             warnings.warn('payload not a dictionary')
             return False
+
+        while not self.subscribed:
+            # can we block here?
+            LOGGER.warning('MQTT Send waiting on connection.')
+            time.sleep(3)
+            
         try:
-            # message['node'] = self.profileNum
             validTypes = ['status', 'command', 'system', 'custom']
             if not type in validTypes:
                 warnings.warn('send: type not valid')
                 return False
             topic = 'udi/pg3/ns/{}/{}'.format(type, self.id)
+            #LOGGER.info('PUBLISHING {}'.format(message))
             self._mqttc.publish(topic, json.dumps(message), retain=False)
         except TypeError as err:
             LOGGER.error('MQTT Send Error: {}'.format(err), exc_info=True)
