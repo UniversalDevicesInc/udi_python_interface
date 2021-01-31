@@ -196,6 +196,8 @@ poll.
 
 start(), to initiate the MQTT connection and start communicating with Polyglot.
 
+ready(), to let the interface know that we are configured to handle events. This should be called near the end of the controller node initialization after all the event callbacks have been registerd.
+
 isConnected(), which tells you if this NodeServer and Polyglot are connected via MQTT.
 
 addNode(node), Adds a new node to Polyglot. You fist need to instantiate a

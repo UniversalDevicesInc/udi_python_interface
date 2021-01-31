@@ -771,6 +771,15 @@ class Interface(object):
 
         self._get_server_data()
 
+    def ready(self):
+        """
+        Called by the node server to let us know we're ready to go.  Start
+        asking PG3 for the info we need.
+        """
+        LOGGER.error('ASKING PG3 CORE for config now')
+        self.send({'config': {}}, 'system')
+        self.send({'getAll': {}}, 'custom')
+
     def isConnected(self):
         """ Tells you if this nodeserver and Polyglot are connected via MQTT """
         return self.connected
