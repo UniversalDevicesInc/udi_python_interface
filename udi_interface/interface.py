@@ -74,6 +74,7 @@ class Interface(object):
         self._mqttc.on_log = self._log
         self.useSecure = True
         self._nodes = {}
+        self.nodes = {}
         if self.pg3init['secure'] is 1:
             self.sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
             self.sslContext.check_hostname = False
@@ -511,65 +512,39 @@ class Interface(object):
         self.config = config
 
         """
-        This code is attempting to build the _nodes list from the
-        nodes defined in the database.  The general idea is to 
-        create the node using the actual node class as defined by
-        the node server, but that doesn't work if the class has
-        additional parameters.
+        PG3 stores the node properties in it's datbase and we get
+        those here.  This is different from the actual node class
+        objects.
 
-        Does it make sense to just create a generic node instead?
+        Ideally, we'd like to recreate the node objects when we
+        start, but is that possible?  What does PG2 do with this
+        list?
+
+        self._nodes[address] = node properties from config
+        self.nodes[address] = a node object?
+                      - Added by addNode() or updateNode()
+                      - addNode will copy driver values from _nodes and
+                        replace the default values before sending to core
+                        that's really the only thing _nodes is used for.
+
         """
         # update our internal _nodes list.
         if 'nodes' in config:
-            for n in config['nodes']:
-                if 'address' not in n:
-                    continue
+            for node in config['nodes']:
+                self._nodes[node['address']] = node
 
-                address = n['address']
-                node = {}
-
-                # if this node doesn't exist yet, create it
-                if address not in self._nodes:
-                    #LOGGER.info('~~~~ {}'.format(n))
-                    primary = n['primaryNode']
-
-                    try:
-                        nodeClass = self._nodeClasses[n['nodeDefId']]
-                        if nodeClass:
-                            node = nodeClass(self, primary, address, n['name'])
-                            self._nodes[address] = node
-                        else:
-                            LOGGER.error('Config node with address {} has invalid class {}'.format(address, n.nodedef))
-                    except Exception as e:
-                        LOGGER.error('Creating node for class {} failed: {}'.format(n['nodeDefId'], e))
-                        node = Node(self, primary, address, n['name'])
-                        node['address'] = n['address']
-                        node['id'] = n['nodeDefId']
-                        node['name'] = n['name']
-                        node['hint'] = n['hint']
-                        node['primary'] = n['primaryNode']
-                        node['private'] = n['private']
-                        node['timeAdded'] = n['timeAdded']
-                        node['timeModified'] = n['timeModified']
-                        node['isPrimary'] = n['isPrimary']
-                        node['enabled'] = n['enabled']
-                        node['drivers'] = []
-
-                        d = []
-                        for drv in n['drivers']:
-                            d.append( {
-                                'driver' : drv['driver'],
-                                'value' : drv['value'],
-                                'uom' : drv['uom'] })
-                        node['drivers'] = d
-
-                        self._nodes[address] = node
-
-                        #TODO: Notify listeners of node?
-
-                else:
-                    node = self._nodes[address]
-
+                """
+                if the node is already in the main node list, use the values
+                from the database to update the node.
+                """
+                if node['address'] in self.nodes:
+                    n = self.nodes[node['address']]
+                    n.updateDrivers(node['drivers']) 
+                    n.config = node
+                    n.isPrimary = node['isprimary']
+                    n.timeAdded = node['timeAdded']
+                    n.enabled = node['enabled']
+                    n.added = node['added']
 
         if 'logLevel' in config:
             self.currentLogLevel = config['logLevel'].upper()
@@ -694,7 +669,7 @@ class Interface(object):
         elif key == 'command':
             if item['address'] in self.nodes:
                 try:
-                    self._nodes[item['address']].runCmd(item)
+                    self.nodes[item['address']].runCmd(item)
                 except (Exception) as err:
                     LOGGER.error('_parseInput: failed {}.runCmd({}) {}'.format(
                         item['address'], item['cmd'], err), exc_info=True)
@@ -725,14 +700,14 @@ class Interface(object):
             except KeyError as e:
                 LOGGER.error('KeyError in longPoll: {}'.format(e), exc_info=True)
         elif key == 'query':
-            if item['address'] in self._nodes:
-                self._nodes[item['address']].query()
+            if item['address'] in self.nodes:
+                self.nodes[item['address']].query()
             elif item['address'] == 'all':
                 # TODO: FIXME: This isn't right now
                 self.query()
         elif key == 'status':
-            if item['address'] in self._nodes:
-                self._nodes[item['address']].status()
+            if item['address'] in self.nodes:
+                self.nodes[item['address']].status()
             elif item['address'] == 'all':
                 # TODO: FIXME: This isn't right now
                 self.status()
@@ -771,8 +746,8 @@ class Interface(object):
                         watcher(result)
                 except KeyError as e:
                     LOGGER.exception('KeyError in NodeDone: {}'.format(e), exc_info=True)
-            else:
-                del self._nodes[result.get('address')]
+            #else:
+            #    del self.nodes[result.get('address')]
         except (KeyError, ValueError) as err:
             LOGGER.error('handleResult: {}'.format(err), exc_info=True)
 
@@ -829,15 +804,15 @@ class Interface(object):
 
         Is this an array or a dictionary keyed with address?
         """
-        return self._nodes
+        return self.nodes
 
     def getNode(self, address):
         """
         Get Node by Address of existing nodes. 
         """
         try:
-            if address in self._nodes:
-                    return self._nodes[address]
+            if address in self.nodes:
+                    return self.nodes[address]
             return None
         except KeyError:
             LOGGER.error(
