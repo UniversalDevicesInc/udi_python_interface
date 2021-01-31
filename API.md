@@ -388,12 +388,27 @@ LOGGER.warn('Warning with perhaps an object logged: %o', myObject);
 LOGGER.error('Error...');
 
 """
- You can set the level of logging you want to display in the logs using
- the LOGGER.setLevel(level) method.  This can be user controlled by adding
- a command to the controller node to select the desired level.
+ Logging is controlled by the user selecting a log level using the 
+ selector list in the node server's dashboard entry on the Polyglot UI.
+
+ The user selection controls polyinterface.LOGGER by default. Logging
+ within the interface module is set to error by default, but can be
+ overriden in the node server with module.xLOGGER.setLevel().  
+
+ The node server is notified of log level changes via a registered
+ callback (onLogLevelChange(callback)).
+
+ The node server can also set LOGGER.setLevel() to override the log
+ level setting.
 """
 LOGGER.setLevel(10)  # set logging level to debug
 ```
+
+The interface module loggers:
+udi_interface.interface.LOGGER
+udi_interface.node.NLOGGER
+udi_interface.custom.CLOGGER
+udi_interface.isy.ILOGGER
 
 The logs are located in <home>/.polyglot/nodeservers/<your node server>/logs/debug.log
 

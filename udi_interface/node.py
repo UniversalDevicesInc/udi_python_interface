@@ -2,7 +2,11 @@ import datetime as dt
 import time
 from copy import deepcopy
 from operator import itemgetter
-from .polylogger import LOGGER
+#from .polylogger import LOGGER
+import logging
+
+NLOGGER = logging.getLogger(__name__)
+NLOGGER.setLevel("ERROR")
 
 class Node(object):
     """
@@ -24,7 +28,7 @@ class Node(object):
             self.added = None
             self.private = None
         except (KeyError) as err:
-            LOGGER.error('Error Creating node: {}'.format(err), exc_info=True)
+            NLOGGER.error('Error Creating node: {}'.format(err), exc_info=True)
 
     def __setitem__(self, name, value):
         self.__dict__[name] = value
@@ -67,10 +71,10 @@ class Node(object):
             changed = True
 
         if report and (changed or force):
-            LOGGER.debug('Reporting set {} to {} to Polyglot'.format(driver, value))
+            NLOGGER.debug('Reporting set {} to {} to Polyglot'.format(driver, value))
             self.reportDriver(driver, force)
         else:
-            LOGGER.debug('No change in {}\'s value'.format(driver))
+            NLOGGER.debug('No change in {}\'s value'.format(driver))
 
     def reportDriver(self, driver, force):
         """ Send existing driver value to ISY """
@@ -84,11 +88,11 @@ class Node(object):
                     'uom': self.drivers[drv]['uom']
                 }]
             }
-            LOGGER.debug('Updating value to {}'.format(self.drivers[drv]['value']))
+            NLOGGER.debug('Updating value to {}'.format(self.drivers[drv]['value']))
             self.poly.send(message, 'status')
 
     def reportDrivers(self):
-        LOGGER.info('Updating All Drivers to ISY for {}({})'.format(
+        NLOGGER.info('Updating All Drivers to ISY for {}({})'.format(
             self.name, self.address))
         self.updateDrivers(self.drivers)
         message = {'set': []}
@@ -127,16 +131,16 @@ class Node(object):
                 fun = self.commands[command['cmd']]
                 fun(self, command)
             else:
-                LOGGER.error('command {} not defined'.format(command['cmd']))
+                NLOGGER.error('command {} not defined'.format(command['cmd']))
         else:
-            LOGGER.error('Invalid command message: {}'.format(command))
+            NLOGGER.error('Invalid command message: {}'.format(command))
 
 
     def start(self):
         pass
 
     def toJSON(self):
-        LOGGER.debug(json.dumps(self.__dict__))
+        NLOGGER.debug(json.dumps(self.__dict__))
 
     def __rep__(self):
         return self.toJSON()

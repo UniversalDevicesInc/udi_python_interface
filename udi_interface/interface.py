@@ -21,11 +21,17 @@ import string
 from threading import Thread, current_thread
 import time
 import netifaces
-from .node import Node
+import logging
+from .node import Node, NLOGGER
+from .custom import Custom, CLOGGER
+from .isy import ISY, ILOGGER
 from .polylogger import LOGGER
-from .custom import Custom
 
+GLOBAL_LOGGER = LOGGER
 DEBUG = False
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel("INFO")
+
 
 class Interface(object):
 
@@ -50,10 +56,11 @@ class Interface(object):
             self.pg3init = json.loads(
                 base64.b64decode(os.environ.get('PG3INIT')))
         except:
-            LOGGER.error('Failed to parse init. Exiting...')
+            LOGGER.critical('Failed to parse init. Exiting...')
             sys.exit(1)
         self.config = None
         self.isInitialConfig = False
+        self.currentLogLevel = 10
         self.connected = False
         self.subscribed = False
         self.uuid = self.pg3init['uuid']
@@ -99,6 +106,7 @@ class Interface(object):
         self.__customNoticeObservers = []
         self.__customNsDataObservers = []
         self.__isyInfoObservers = []
+        self.__logLevelObservers = []
         Interface.__exists = True
         self.custom_params_docs_file_sent = False
         self.custom_params_pending_docs = ''
@@ -237,6 +245,13 @@ class Interface(object):
         """
         self.__isyInfoObservers.append(callback)
 
+    def onLogLevelChange(self, callback):
+        """
+        Gives the ability to bind any methods to be run when the
+        log level is changed.
+        """
+        self.__logLevelObservers.append(callback)
+
     def _connect(self, mqttc, userdata, flags, rc):
         """
         The callback for when the client receives a CONNACK response from
@@ -292,12 +307,10 @@ class Interface(object):
             inputCmds = ['query', 'command', 'addnode', 'stop',
                          'status', 'shortPoll', 'longPoll', 'delete',
                          'config', 'customdata', 'customparams', 'notices',
-                         'getIsyInfo', 'getAll']
+                         'getIsyInfo', 'getAll', 'setLogLevel']
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
-            if DEBUG:
-                LOGGER.debug('MQTT Received Message: {}: {}'.format(
-                    msg.topic, parsed_msg))
+            #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
 
             # some of these should move to above
 
@@ -317,14 +330,8 @@ class Interface(object):
 
             for key in parsed_msg:
                 if key in inputCmds:
-                    LOGGER.info('QUEUING incoming message {}'.format(key))
+                    LOGGER.debug('QUEUING incoming message {}'.format(key))
                     self.inQueue.put(parsed_msg)
-                elif key == 'setLogLevel':
-                    try:
-                        self.currentLogLevel = parsed_msg[key]['level'].upper()
-                        LOGGER.setLevel(self.currentLogLevel)
-                    except (KeyError, ValueError) as err:
-                        LOGGER.error('Failed to set {}: {}'.format(key, err), exc_info=True)
                 elif key == 'set':
                     if isinstance(parsed_msg[key], list):
                         for item in parsed_msg[key]:
@@ -346,11 +353,11 @@ class Interface(object):
                     else:
                         LOGGER.error('set input was not a list')
                 elif key == 'installprofile':
-                    LOGGER.debug('Profile installation finished')
+                    LOGGER.info('Profile installation finished')
                 elif key == 'error':
                     LOGGER.error('error {}'.format(parsed_msg[key]))
                 elif key == 'customparamsdoc':
-                    LOGGER.error('customparamsdoc response')
+                    LOGGER.info('customparamsdoc response')
                 else:
                     LOGGER.error(
                         'Invalid command received in message from PG3: \'{}\''.format(key))
@@ -361,7 +368,7 @@ class Interface(object):
             # Can any other exception happen?
             template = "An exception of type {0} occured. Arguments:\n{1!r}"
             message = template.format(type(ex).__name__, ex.args)
-            LOGGER.error("MQTT Received Unknown Error: " +
+            LOGGER.exception("MQTT Received Unknown Error: " +
                          message, exc_info=True)
 
 
@@ -382,7 +389,7 @@ class Interface(object):
             except Exception as ex:
                 template = "An exception of type {0} occured. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
-                LOGGER.error("MQTT Connection error: " + message)
+                LOGGER.exception("MQTT Connection error: " + message)
         else:
             LOGGER.info("MQTT Graceful disconnection.")
 
@@ -422,7 +429,7 @@ class Interface(object):
             except Exception as ex:
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
-                LOGGER.error("MQTT Connection error: {}".format(
+                LOGGER.exception("MQTT Connection error: {}".format(
                     message), exc_info=True)
                 done = True
         LOGGER.debug("MQTT: Done")
@@ -504,12 +511,13 @@ class Interface(object):
                 warnings.warn('send: type not valid')
                 return False
             topic = 'udi/pg3/ns/{}/{}'.format(type, self.id)
-            #LOGGER.info('PUBLISHING {}'.format(message))
+            LOGGER.debug('PUBLISHING {}'.format(message))
             self._mqttc.publish(topic, json.dumps(message), retain=False)
         except TypeError as err:
             LOGGER.error('MQTT Send Error: {}'.format(err), exc_info=True)
 
     def _inConfig(self, config):
+        LOGGER.debug('INCFG --> start processing config data')
         """
         Save incoming config received from Polyglot to Interface.config
         and then do any functions that are waiting on the config to be
@@ -558,7 +566,19 @@ class Interface(object):
         if 'logLevel' in config:
             self.currentLogLevel = config['logLevel'].upper()
             LOGGER.debug('Setting log level to {}'.format(self.currentLogLevel))
-            LOGGER.setLevel(self.currentLogLevel)
+            if self.currentLogLevel == 'ALL':
+                LOGGER.setLevel('DEBUG')
+                CLOGGER.setLevel('DEBUG')
+                NLOGGER.setLevel('DEBUG')
+                ILOGGER.setLevel('DEBUG')
+                self.currentLogLevel = 'DEBUG'
+
+            GLOBAL_LOGGER.setLevel(self.currentLogLevel)
+            try:
+                for watcher in self.__logLevelObservers:
+                    watcher(self.currentLogLevel)
+            except KeyError as e:
+                LOGGER.error('KeyError in setLogLevel: {}'.format(e), exc_info=True)
 
         self._onConfig(config)
 
@@ -594,6 +614,7 @@ class Interface(object):
         while True:
             input = self.inQueue.get()
             for key in input:
+                LOGGER.debug('DEQUEING {}'.format(key))
                 if isinstance(input[key], list):
                     for item in input[key]:
                         self._handleInput(key, item)
@@ -620,7 +641,6 @@ class Interface(object):
             except ValueError as e:
                 value = item.get('value')
 
-            LOGGER.error('GOT custom params --> calling watchers')
             self._onCustomParams(value)
         elif key == 'customtypedparams':
             try:
@@ -654,7 +674,7 @@ class Interface(object):
             try:
                 value = json.loads(item.get('value'))
 
-                LOGGER.error('GETALL -> {} {}'.format(item.get('key'), value))
+                #LOGGER.error('GETALL -> {} {}'.format(item.get('key'), value))
                 if item.get('key') == 'notices':
                     self._onCustomNotice(value)
                 elif item.get('key') == 'customparams':
@@ -721,8 +741,34 @@ class Interface(object):
                 # TODO: FIXME: This isn't right now
                 self.status()
         elif key == 'stop':
-            LOGGER.debug('Received stop from Polyglot... Shutting Down.')
+            LOGGER.info('Received stop from Polyglot... Shutting Down.')
             self.stop()
+        elif key == 'setLogLevel':
+            try:
+                self.currentLogLevel = item['level'].upper()
+                if self.currentLogLevel == 'ALL':
+                    LOGGER.setLevel('DEBUG')
+                    CLOGGER.setLevel('DEBUG')
+                    NLOGGER.setLevel('DEBUG')
+                    ILOGGER.setLevel('DEBUG')
+                    self.currentLogLevel = 'DEBUG'
+                    
+                GLOBAL_LOGGER.setLevel(self.currentLogLevel)
+                
+                # FIXME: Testing setting level from dashboard
+                LOGGER.setLevel(self.currentLogLevel)
+                CLOGGER.setLevel(self.currentLogLevel)
+                NLOGGER.setLevel(self.currentLogLevel)
+                ILOGGER.setLevel(self.currentLogLevel)
+
+                try:
+                    for watcher in self.__logLevelObservers:
+                        watcher(item['level'])
+                except KeyError as e:
+                    LOGGER.error('KeyError in setLogLevel: {}'.format(e), exc_info=True)
+
+            except (KeyError, ValueError) as err:
+                LOGGER.error('Failed to set {}: {}'.format(key, err), exc_info=True)
 
     def _handleResult(self, result):
         try:
@@ -776,7 +822,7 @@ class Interface(object):
         Called by the node server to let us know we're ready to go.  Start
         asking PG3 for the info we need.
         """
-        LOGGER.error('ASKING PG3 CORE for config now')
+        LOGGER.debug('Asking PG3 for config/getAll now')
         self.send({'config': {}}, 'system')
         self.send({'getAll': {}}, 'custom')
 
@@ -865,7 +911,7 @@ class Interface(object):
 
     # TODO:
     def addNoticeTemp(self, key, text, delaySec):
-        LOGGER.debug('FIXME: add temp notice not yet implemented.')
+        LOGGER.warning('FIXME: add temp notice not yet implemented.')
         """
         Add a notice to the Polyglot UI. The notice will be active for
         delaySec seconds.
@@ -907,7 +953,7 @@ class Interface(object):
     # Deprecated in favor of updateProfile()
     def installprofile(self):
         LOGGER.info('Sending Install Profile command to Polyglot.')
-        LOGGER.warn('installprofile() is deprecated. Use updateProfile() instead.')
+        LOGGER.warning('installprofile() is deprecated. Use updateProfile() instead.')
         message = {'installprofile': {'reboot': False}}
         self.send(message, 'system')
 
@@ -934,7 +980,7 @@ class Interface(object):
             html = self.getMarkDownData(
                 Interface.CUSTOM_CONFIG_DOCS_FILE_NAME)
 
-        LOGGER.info('Sending {} to Polyglot.'.format('customparamsdoc'))
+        LOGGER.debug('Sending {} to Polyglot.'.format('customparamsdoc'))
         message = {'set': [{'key': 'customparamsdoc', 'value': html}]}
         self.send(message, 'custom')
 

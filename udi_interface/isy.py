@@ -1,8 +1,11 @@
-from .polylogger import LOGGER
+#from .polylogger import LOGGER
+import logging
 import requests
 import pyisy as PYISY
 from pyisy import constants
 
+ILOGGER = logging.getLogger(__name__)
+ILOGGER.setLevel("ERROR")
 CONSTANTS = constants
 
 class ISY(object):
@@ -20,7 +23,7 @@ class ISY(object):
         self.poly.onIsyInfo(self._info) #listen for info response
 
         message = {'getIsyInfo': {}}
-        LOGGER.debug('ISYINFO: sending {} to PG3 core'.format(message))
+        ILOGGER.debug('ISYINFO: sending {} to PG3 core'.format(message))
         self.poly.send(message, 'system')
 
 
@@ -51,7 +54,7 @@ class ISY(object):
             results = c.text
             c.close()
         except Exception as e:
-            LOGGER.error('Requests failed: {}'.format(e))
+            ILOGGER.error('Requests failed: {}'.format(e))
 
         return results
 
@@ -66,7 +69,7 @@ class ISY(object):
                             webroot = "")
             return isy
         except ValueError as err:
-            LOGGER.error('Failed to connect to the ISY: {}'.format(err))
+            ILOGGER.error('Failed to connect to the ISY: {}'.format(err))
 
         return None
 

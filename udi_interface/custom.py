@@ -1,4 +1,8 @@
-from .polylogger import LOGGER
+import logging
+#from .polylogger import LOGGER
+
+CLOGGER = logging.getLogger(__name__)
+CLOGGER.setLevel("INFO")
 
 class Custom(dict):
 
@@ -7,7 +11,7 @@ class Custom(dict):
         self.__dict__['poly'] = poly
         self.__dict__['custom'] = custom
 
-        LOGGER.debug('CUSTOM: Initialzing _rawdata to empty')
+        CLOGGER.debug('CUSTOM: Initialzing _rawdata to empty')
         self.__dict__['_rawdata'] = {}
 
         """
@@ -27,7 +31,7 @@ class Custom(dict):
         #self.poly.custom[self.__dict__['custom']] = self._rawdata
         #self.poly._saveCustom(self.__dict__['custom'])
 
-        LOGGER.info('Sending data {} to Polyglot.'.format(key))
+        CLOGGER.info('Sending data {} to Polyglot.'.format(key))
         message = {'set': [{'key': key, 'value': self.__dict__['_rawdata']}]}
         self.poly.send(message, 'custom')
 
@@ -37,7 +41,7 @@ class Custom(dict):
         structure from Polyglot's database.  Should this
         be overwriting or updating the internal structure?
         """
-        LOGGER.debug('CUSTOM: load {}'.format(new_data))
+        CLOGGER.debug('CUSTOM: load {}'.format(new_data))
 
         """
         typed parameter data is a bit different so we have to handle
@@ -45,7 +49,7 @@ class Custom(dict):
         of dicts. 
         """
         if self.__dict__['custom'] == 'customtypedparams':
-            LOGGER.debug('CUSTOM:  -- typed parameters {}'.format(new_data))
+            CLOGGER.debug('CUSTOM:  -- typed parameters {}'.format(new_data))
             self.__dict__['_rawdata'] = new_data
             if save:
                 self._save()
@@ -57,7 +61,7 @@ class Custom(dict):
         dictionary appropriately.
         """
         for key in new_data:
-            LOGGER.debug('CUSTOM:  -- checking {} / {}'.format(key, new_data[key]))
+            CLOGGER.debug('CUSTOM:  -- checking {} / {}'.format(key, new_data[key]))
             edata = {'changed':False, 'new':False}
 
             if key in self.__dict__['_rawdata']:
@@ -75,12 +79,12 @@ class Custom(dict):
 
     def __setattr__(self, key, notice):
         self.__dict__['_rawdata'][key] = notice
-        LOGGER.debug('CUSTOM: {} = {} ...saving'.format(key, notice))
+        CLOGGER.debug('CUSTOM: {} = {} ...saving'.format(key, notice))
         self._save()
 
     def __setitem__(self, key, notice):
         self.__dict__['_rawdata'][key] = notice
-        LOGGER.debug('CUSTOM: {} = {} ...saving'.format(key, notice))
+        CLOGGER.debug('CUSTOM: {} = {} ...saving'.format(key, notice))
         self._save()
 
     def __getattr__(self, key):
@@ -98,12 +102,12 @@ class Custom(dict):
     def delete(self, key):
         if key in self._rawdata:
             self._rawdata.pop(key)
-            LOGGER.debug('CUSTOM: delete {} ...saving'.format(key))
+            CLOGGER.debug('CUSTOM: delete {} ...saving'.format(key))
             self._save()
 
     def clear(self):
         self.__dict__['_rawdata'] = {}
-        LOGGER.debug('CUSTOM: Clear  ...saving')
+        CLOGGER.debug('CUSTOM: Clear  ...saving')
         self._save()
 
     def __iter__(self):
