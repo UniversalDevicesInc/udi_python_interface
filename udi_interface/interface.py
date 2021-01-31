@@ -277,24 +277,45 @@ class Interface(object):
         :param userdata: The private userdata for the mqtt client. Not used in Polyglot
         :param flags: The flags set on the connection.
         :param msg: Dictionary of MQTT received message. Uses: msg.topic, msg.qos, msg.payload
+
+        This should be quick and not block.  How do we solve that?  
+          - Put message in queue and have thread pull from queue and process
+             - This would keep the messages serialized
+          - start a thread to process
+             - this could have race condition issues
         """
         try:
-            inputCmds = ['query', 'command', 'addnode',
-                         'status', 'shortPoll', 'longPoll', 'delete']
+            # these are queued so that we can process them in order.
+            inputCmds = ['query', 'command', 'addnode', 'stop',
+                         'status', 'shortPoll', 'longPoll', 'delete',
+                         'config', 'customdata', 'customparams', 'notices',
+                         'getIsyInfo', 'getAll']
+
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
             if DEBUG:
                 LOGGER.debug('MQTT Received Message: {}: {}'.format(
                     msg.topic, parsed_msg))
+
+            # some of these should move to above
+
+            # should these all move to the queue?
+            # config            -- calls back into node server, could block
+            # getAll            -- calls back into node server, could block
+            # customdata        -- calls back into node server
+            # customparams      -- calls back into node server
+            # customtypedparams -- calls back into node server
+            # notices           -- calls back into node server
+            # getIsyInfo        -- calls back into 
+
+            # installProfile    -- logging
+            # customparamsdoc   -- logging
+            # set               -- basically just logging info
+            # error             -- logging
+
             for key in parsed_msg:
-                if DEBUG:
-                    LOGGER.debug('MQTT Processing Message: {}: {}'.format(
-                        msg.topic, parsed_msg))
-                if key == 'config':
-                    self._inConfig(parsed_msg[key])
-                elif key == 'stop':
-                    LOGGER.debug(
-                        'Received stop from Polyglot... Shutting Down.')
-                    self.stop()
+                if key in inputCmds:
+                    LOGGER.info('QUEUING incoming message {}'.format(key))
+                    self.inQueue.put(parsed_msg)
                 elif key == 'setLogLevel':
                     try:
                         self.currentLogLevel = parsed_msg[key]['level'].upper()
@@ -321,97 +342,15 @@ class Interface(object):
 
                     else:
                         LOGGER.error('set input was not a list')
-                elif key == 'getAll':
-                    """
-                    custom keys should include notices, customparams, 
-                    customtypedparams, customdata
-                    """
-                    LOGGER.debug('PROCESS getAll message from Polyglot')
-                    if isinstance(parsed_msg[key], list):
-                        for custom in parsed_msg[key]:
-                            LOGGER.debug(
-                                'Received {} from database'.format(custom.get('key')))
-                            try:
-                                value = json.loads(custom.get('value'))
-
-                                if custom.get('key') == 'notices':
-                                    self._onCustomNotice(value)
-                                elif custom.get('key') == 'customparams':
-                                    self._onCustomParams(value)
-                                elif custom.get('key') == 'customtypedparams':
-                                    self._onCustomTypedParams(value)
-                                elif custom.get('key') == 'customdata':
-                                    self._onCustomData(value)
-                                elif custom.get('key') == 'idata':
-                                    self._ifaceData.load(value)
-                                else:
-                                    LOGGER.debug('Key {} should be passed to node server.'.format(custom.get('key')))
-                                    try:
-                                        for watcher in self.__customNsDataObservers:
-                                            watcher(custom.get('key'), value)
-                                    except KeyError as e:
-                                        LOGGER.exception('KeyError in getAll: {}'.format(e), exc_info=True)
-                            except ValueError as e:
-                                LOGGER.error('Failure trying to load {} data'.format(custom.get('key')))
-
-                    if self.config is None:
-                        LOGGER.debug('Requesting configuration from Polyglot')
-                        self.send({'config': {}}, 'system')
-                elif key == 'customdata':
-                    LOGGER.debug('customData: {}'.format(parsed_msg[key]))
-                    """
-                    TODO: check for changes?
-                    """
-                    try:
-                        value = json.loads(parsed_msg[key].get('value'))
-                    except ValueError as e:
-                        value = parsed_msg[key].get('value')
-
-                    self._onCustomData(value)
-                elif key == 'customparams':
-                    LOGGER.debug('customParams: {}'.format(parsed_msg[key]))
-                    """
-                    TODO: can we detect which parameters are new/changed
-                    and mark them here before sending to ns?
-                    """
-                    try:
-                        value = json.loads(parsed_msg[key])
-                    except ValueError as e:
-                        value = parsed_msg[key].get('value')
-
-
-                    self._onCustomParams(value)
-                elif key == 'customtypedparams':
-                    try:
-                        value = json.loads(parsed_msg[key])
-                    except ValueError as e:
-                        value = parsed_msg[key]
-
-                    self._onCustomTypedParams(value)
-                elif key == 'notices':
-                    """
-                    TODO: can we detect which parameters are new/changed
-                    and mark them here before sending to ns?
-                    """
-                    LOGGER.debug('notices: {}'.format(parsed_msg[key]))
-
-                    try:
-                        value = json.loads(parsed_msg[key])
-                    except ValueError as e:
-                        value = parsed_msg[key].get('value')
-
-                    """ Load new notices data into class """
-                    self._onCustomNotice(value)
-
                 elif key == 'installprofile':
                     LOGGER.debug('Profile installation finished')
                 elif key == 'error':
                     LOGGER.error('error {}'.format(parsed_msg[key]))
-                elif key in inputCmds:
-                    self.inQueue.put(parsed_msg)
+                elif key == 'customparamsdoc':
+                    LOGGER.error('customparamsdoc response')
                 else:
                     LOGGER.error(
-                        'Invalid command received in message from PG3: {}'.format(key))
+                        'Invalid command received in message from PG3: \'{}\''.format(key))
         except (ValueError) as err:
             LOGGER.error('MQTT Received Payload Error: {}'.format(
                 err), exc_info=True)
@@ -679,8 +618,81 @@ class Interface(object):
             self.inQueue.task_done()
 
     def _handleInput(self, key, item):
-        if key == 'command':
-            if item['address'] in self._nodes:
+        #LOGGER.info('PROCESS {} message {} from Polyglot'.format(key, item))
+        if key == 'config':
+            self._inConfig(item)
+        elif key == 'customdata':
+            #LOGGER.debug('customData: {}'.format(item))
+            try:
+                value = json.loads(item)
+            except ValueError as e:
+                value = item.get('value')
+
+            self._onCustomData(value)
+        elif key == 'customparams':
+            #LOGGER.debug('customParams: {}'.format(item))
+            try:
+                value = json.loads(item)
+            except ValueError as e:
+                value = item.get('value')
+
+            LOGGER.error('GOT custom params --> calling watchers')
+            self._onCustomParams(value)
+        elif key == 'customtypedparams':
+            try:
+                value = json.loads(item)
+            except ValueError as e:
+                value = item
+
+            self._onCustomTypedParams(value)
+        elif key == 'notices':
+            #LOGGER.debug('notices: {}'.format(item))
+
+            try:
+                value = json.loads(item)
+            except ValueError as e:
+                value = item.get('value')
+
+            self._onCustomNotice(value)
+        elif key == 'getIsyInfo':
+            try:
+                for watcher in self.__isyInfoObservers:
+                    watcher(item)
+            except KeyError as e:
+                LOGGER.exception('KeyError in isyinfo: {}'.format(e), exc_info=True)
+        elif key == 'getAll':
+            """
+            This is one of the first messages we get from Polyglot.
+
+            custom keys should include notices, customparams, 
+            customtypedparams, customdata
+            """
+            try:
+                value = json.loads(item.get('value'))
+
+                LOGGER.error('GETALL -> {} {}'.format(item.get('key'), value))
+                if item.get('key') == 'notices':
+                    self._onCustomNotice(value)
+                elif item.get('key') == 'customparams':
+                    self._onCustomParams(value)
+                elif item.get('key') == 'customtypedparams':
+                    self._onCustomTypedParams(value)
+                elif item.get('key') == 'customdata':
+                    self._onCustomData(value)
+                elif item.get('key') == 'idata':
+                    self._ifaceData.load(value)
+                else:
+                    # node server custom key
+                    LOGGER.debug('Key {} should be passed to node server.'.format(item.get('key')))
+                    try:
+                        for watcher in self.__customNsDataObservers:
+                            watcher(item.get('key'), value)
+                    except KeyError as e:
+                        LOGGER.exception('KeyError in getAll: {}'.format(e), exc_info=True)
+            except ValueError as e:
+                LOGGER.error('Failure trying to load {} data'.format(item.get('key')))
+        elif key == 'command':
+            if item['address'] in self.nodes:
                 try:
                     self._nodes[item['address']].runCmd(item)
                 except (Exception) as err:
@@ -724,6 +736,9 @@ class Interface(object):
             elif item['address'] == 'all':
                 # TODO: FIXME: This isn't right now
                 self.status()
+        elif key == 'stop':
+            LOGGER.debug('Received stop from Polyglot... Shutting Down.')
+            self.stop()
 
     def _handleResult(self, result):
         try:
