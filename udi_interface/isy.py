@@ -20,14 +20,19 @@ class ISY(object):
         self._isy_https = False
         self.constants = CONSTANTS
 
+        """
         self.poly.onIsyInfo(self._info) #listen for info response
+        """
+        self.poly.subscribe(self.poly.ISY, self._info)
 
         message = {'getIsyInfo': {}}
         ILOGGER.debug('ISYINFO: sending {} to PG3 core'.format(message))
+        ILOGGER.error('ISYINFO: sending {} to PG3 core'.format(message))
         self.poly.send(message, 'system')
 
 
     def _info(self, info):
+        ILOGGER.error('ISYINFO: Got ISY data from PG3')
         self._isy_ip = info['isy_ip_address']
         self._isy_user = info['isy_username']
         self._isy_pass = info['isy_password']

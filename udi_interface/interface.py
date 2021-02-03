@@ -32,11 +32,71 @@ DEBUG = False
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel("INFO")
 
+"""
+usage:
+      pub.subscribe(CONFIG, configHandler)
+
+      pub.publish(CONFIG, config_data)
+"""
+class pub(object):
+
+    # topic is index into this list
+    topic_list = [
+         'config',
+         'start',
+         'start_done',
+         'stop',
+         'delete',
+         'add_node_done',
+         'custom_data',
+         'custom_params',
+         'custom_typed_params',
+         'custom_ns_data',
+         'notices',
+         'poll',
+         'log_level',
+         'isy_info',
+         ]
+
+    topics = {}
+
+    @staticmethod
+    def subscribe(topic, callback, address=None):
+        if int(topic) >= len(pub.topic_list):
+            raise IndexError
+
+        if pub.topic_list[topic] not in pub.topics:
+            pub.topics[pub.topic_list[topic]] = [{callback, address}]
+        else:
+            pub.topics[pub.topic_list[topic]].append({callback, address})
+
+    @staticmethod
+    def publish(topic, address, *argv):
+        if pub.topic_list[topic] in pub.topics:
+            for watcher, addr in pub.topics[pub.topic_list[topic]]:
+                if addr == address:
+                   watcher(*argv)
+        
+
 
 class Interface(object):
 
     CUSTOM_CONFIG_DOCS_FILE_NAME = 'POLYGLOT_CONFIG.md'
     SERVER_JSON_FILE_NAME = 'server.json'
+    CONFIG            = 0
+    START             = 1
+    STARTDONE         = 2
+    STOP              = 3
+    DELETE            = 4
+    ADDNODEDONE       = 5
+    CUSTOMDATA        = 6
+    CUSTOMPARAMS      = 7
+    CUSTOMTYPEDPARAMS = 8
+    CUSTOMNS          = 9
+    NOTICES           = 10
+    POLL              = 11
+    LOGLEVEL          = 12
+    ISY               = 13
 
     """
     Polyglot Interface Class
@@ -93,20 +153,6 @@ class Interface(object):
         self._server = self.pg3init['mqttHost'] or 'localhost'
         self._port = self.pg3init['mqttPort'] or '1883'
         self.polyglotConnected = False
-        self.__configObservers = []
-        self.__stopObservers = []
-        self.__startObservers = {}
-        self.__startDoneObservers = []
-        self.__nodeAddDoneObservers = []
-        self.__deleteObservers = []
-        self.__pollObservers = []
-        self.__customParamsObservers = []
-        self.__customTypedParamsObservers = []
-        self.__customDataObservers = []
-        self.__customNoticeObservers = []
-        self.__customNsDataObservers = []
-        self.__isyInfoObservers = []
-        self.__logLevelObservers = []
         Interface.__exists = True
         self.custom_params_docs_file_sent = False
         self.custom_params_pending_docs = ''
@@ -128,129 +174,8 @@ class Interface(object):
         for c in classes:
             self._nodeClasses[c.id] = c
 
-    def onConfig(self, callback):
-        """
-        Gives the ability to bind any methods to be run when the config is received.
-        """
-        self.__configObservers.append(callback)
-    def _onConfig(self, data):
-        try:
-            for watcher in self.__configObservers:
-                Thread(target=watcher, args=[data]).start()
-        except KeyError as e:
-            LOGGER.exception('KeyError in config: {}'.format(e), exc_info=True)
-
-    def onStart(self, address, callback):
-        """
-        Gives the ability to bind any methods to be run when the interface is
-        started.
-        """
-        self.__startObservers[address] = callback
-
-    def onStartDone(self, callback):
-        """
-        Gives the ability to bind any methods to be run when the node's  
-        start method has finished.
-        """
-        self.__startDoneObservers.append(callback)
-
-    def onAddNodeDone(self, callback):
-        """
-        Gives the ability to bind any methods to be run when the node's  
-        start method has finished.
-        """
-        self.__nodeAddDoneObservers.append(callback)
-
-    def onStop(self, callback):
-        """
-        Gives the ability to bind any methods to be run when the stop command is received.
-        """
-        self.__stopObservers.append(callback)
-
-    def onDelete(self, callback):
-        """
-        Gives the ability to bind any methods to be run when the delete command is received.
-        """
-        self.__deleteObservers.append(callback)
-
-    def onPoll(self, callback):
-        """
-        Gives the ability to bind any methods to be run when the poll command is received.
-        """
-        self.__pollObservers.append(callback)
-
-    def onCustomParams(self, callback):
-        """
-        Gives the ability to bind any methods to be run when the
-        custom parameters are received.
-        """
-        self.__customParamsObservers.append(callback)
-    def _onCustomParams(self, data):
-        try:
-            for watcher in self.__customParamsObservers:
-                watcher(data)
-        except KeyError as e:
-            LOGGER.exception('KeyError in customparams: {}'.format(e), exc_info=True)
-
-    def onCustomTypedParams(self, callback):
-        """
-        Gives the ability to bind any methods to be run when the
-        custom typed parameters are received.
-        """
-        self.__customTypedParamsObservers.append(callback)
-    def _onCustomTypedParams(self, data):
-        try:
-            for watcher in self.__customTypedParamsObservers:
-                watcher(data)
-        except KeyError as e:
-            LOGGER.exception('KeyError in customtypedparams: {}'.format(e), exc_info=True)
-
-    def onCustomData(self, callback):
-        """
-        Gives the ability to bind any methods to be run when the
-        custom data is received.
-        """
-        self.__customDataObservers.append(callback)
-    def _onCustomData(self, data):
-        try:
-            for watcher in self.__customDataObservers:
-                watcher(data)
-        except KeyError as e:
-            LOGGER.exception('KeyError in customdata: {}'.format(e), exc_info=True)
-
-    def onCustomNotice(self, callback):
-        """
-        Gives the ability to bind any methods to be run when a
-        notice is received.
-        """
-        self.__customNoticeObservers.append(callback)
-    def _onCustomNotice(self, data):
-        try:
-            for watcher in self.__customNoticeObservers:
-                watcher(data)
-        except KeyError as e:
-            LOGGER.exception('KeyError in notice: {}'.format(e), exc_info=True)
-
-    def onCustomNsData(self, callback):
-        """
-        Gives the ability to bind any methods to be run when a
-        unknown data type is received.
-        """
-        self.__customNsDataObservers.append(callback)
-
-    def onIsyInfo(self, callback):
-        """
-        Gives the ability to bind any methods to be run when a
-        ISY info is received.
-        """
-        self.__isyInfoObservers.append(callback)
-
-    def onLogLevelChange(self, callback):
-        """
-        Gives the ability to bind any methods to be run when the
-        log level is changed.
-        """
-        self.__logLevelObservers.append(callback)
+    def subscribe(self, topic, callback, address=None):
+        pub.subscribe(topic, callback, address)
 
     def _connect(self, mqttc, userdata, flags, rc):
         """
@@ -483,12 +408,7 @@ class Interface(object):
                 self._server, self._port))
             self._mqttc.loop_stop()
             self._mqttc.disconnect()
-        try:
-            for watcher in self.__stopObservers:
-                watcher()
-        except KeyError as e:
-            LOGGER.exception(
-                'KeyError in stop: {}'.format(e), exc_info=True)
+        pub.publish(self.STOP, None)
 
     def send(self, message, type):
         """
@@ -574,13 +494,9 @@ class Interface(object):
                 self.currentLogLevel = 'DEBUG'
 
             GLOBAL_LOGGER.setLevel(self.currentLogLevel)
-            try:
-                for watcher in self.__logLevelObservers:
-                    watcher(self.currentLogLevel)
-            except KeyError as e:
-                LOGGER.error('KeyError in setLogLevel: {}'.format(e), exc_info=True)
+            pub.publish(self.LOGLEVEL, None, self.currentLogLevel)
 
-        self._onConfig(config)
+        pub.publish(self.CONFIG, None, config)
 
         """
         if self.isInitialConfig:
@@ -594,21 +510,14 @@ class Interface(object):
     """
     This is a wrapper for the node start method.  We wrap this so 
     that we know when the method has finished and we can then notify
-    an wathers that the start method has finished.
+    an watchers that the start method has finished.
     """
-    def _startNode(self, node_start_method, address):
+    def _startNode(self, address):
         # Run the nodes start function now.
-        if node_start_method:
-            node_start_method()
+        pub.publish(self.START, address)
 
         # start has finished. Do we know which one this is?
-        try:
-            for watcher in self.__startDoneObservers:
-                LOGGER.debug('Calling startDone for {}'.format(address))
-                watcher(address)
-        except KeyError as e:
-            LOGGER.exception(
-                'KeyError in _startNode: {}'.format(e), exc_info=True)
+        pub.publish(self.STARTDONE, None, address)
 
     def _parseInput(self):
         while True:
@@ -633,7 +542,7 @@ class Interface(object):
             except ValueError as e:
                 value = item.get('value')
 
-            self._onCustomData(value)
+            pub.publish(self.CUSTOMDATA, None, value)
         elif key == 'customparams':
             #LOGGER.debug('customParams: {}'.format(item))
             try:
@@ -641,14 +550,14 @@ class Interface(object):
             except ValueError as e:
                 value = item.get('value')
 
-            self._onCustomParams(value)
+            pub.publish(self.CUSTOMPARAMS, None, value)
         elif key == 'customtypedparams':
             try:
                 value = json.loads(item)
             except ValueError as e:
                 value = item
 
-            self._onCustomTypedParams(value)
+            pub.publish(self.CUSTOMTYPEDPARAMS, None, value)
         elif key == 'notices':
             #LOGGER.debug('notices: {}'.format(item))
 
@@ -657,13 +566,9 @@ class Interface(object):
             except ValueError as e:
                 value = item.get('value')
 
-            self._onCustomNotice(value)
+            pub.publish(self.NOTICES, None, value)
         elif key == 'getIsyInfo':
-            try:
-                for watcher in self.__isyInfoObservers:
-                    watcher(item)
-            except KeyError as e:
-                LOGGER.exception('KeyError in isyinfo: {}'.format(e), exc_info=True)
+            pub.publish(self.ISY, None, item)
         elif key == 'getAll':
             """
             This is one of the first messages we get from Polyglot.
@@ -676,23 +581,19 @@ class Interface(object):
 
                 #LOGGER.error('GETALL -> {} {}'.format(item.get('key'), value))
                 if item.get('key') == 'notices':
-                    self._onCustomNotice(value)
+                    pub.publish(self.NOTICES, None, value)
                 elif item.get('key') == 'customparams':
-                    self._onCustomParams(value)
+                    pub.publish(self.CUSTOMPARAMS, None, value)
                 elif item.get('key') == 'customtypedparams':
-                    self._onCustomTypedParams(value)
+                    pub.publish(self.CUSTOMTYPEDPARAMS, None, value)
                 elif item.get('key') == 'customdata':
-                    self._onCustomData(value)
+                    pub.publish(self.CUSTOMDATA, None, value)
                 elif item.get('key') == 'idata':
                     self._ifaceData.load(value)
                 else:
                     # node server custom key
                     LOGGER.debug('Key {} should be passed to node server.'.format(item.get('key')))
-                    try:
-                        for watcher in self.__customNsDataObservers:
-                            watcher(item.get('key'), value)
-                    except KeyError as e:
-                        LOGGER.exception('KeyError in getAll: {}'.format(e), exc_info=True)
+                    pub.publish(self.CUSTOMNS, None, item.get('key'), value)
             except ValueError as e:
                 LOGGER.error('Failure trying to load {} data'.format(item.get('key')))
         elif key == 'command':
@@ -708,26 +609,11 @@ class Interface(object):
         elif key == 'addnode':
             self._handleResult(item)
         elif key == 'delete':
-            try:
-                for watcher in self.__deleteObservers:
-                    watcher()
-
-            except KeyError as e:
-                LOGGER.error('KeyError in delete: {}'.format(e), exc_info=True)
+            pub.publish(self.DELETE, None)
         elif key == 'shortPoll':
-            try:
-                for watcher in self.__pollObservers:
-                    watcher('shortPoll')
-
-            except KeyError as e:
-                LOGGER.error('KeyError in shortPoll: {}'.format(e), exc_info=True)
+            pub.publish(self.POLL, None, 'shortPoll')
         elif key == 'longPoll':
-            try:
-                for watcher in self.__pollObservers:
-                    watcher('longPoll')
-
-            except KeyError as e:
-                LOGGER.error('KeyError in longPoll: {}'.format(e), exc_info=True)
+            pub.publish(self.POLL, None, 'longPoll')
         elif key == 'query':
             if item['address'] in self.nodes:
                 self.nodes[item['address']].query()
@@ -761,11 +647,7 @@ class Interface(object):
                 NLOGGER.setLevel(self.currentLogLevel)
                 ILOGGER.setLevel(self.currentLogLevel)
 
-                try:
-                    for watcher in self.__logLevelObservers:
-                        watcher(item['level'])
-                except KeyError as e:
-                    LOGGER.error('KeyError in setLogLevel: {}'.format(e), exc_info=True)
+                pub.publish(self.LOGLEVEL, None, item['level'])
 
             except (KeyError, ValueError) as err:
                 LOGGER.error('Failed to set {}: {}'.format(key, err), exc_info=True)
@@ -782,25 +664,12 @@ class Interface(object):
                 was configured by the node server using the onStart()
                 callback.
                 """
-                try:
-                    # need to limit this by address.
-                    for addr in self.__startObservers:
-                        if addr == result.get('address'):
-                            Thread(target=self._startNode, args=[self.__startObservers[addr], addr]).start()
-                except KeyError as e:
-                    LOGGER.exception(
-                        'KeyError in start: {}'.format(e), exc_info=True)
-
-
+                Thread(target=self._startNode, args=[result.get('address')]).start()
                 LOGGER.debug('add node response: {}'.format(result))
 
 
                 # Notify listeners that node has been added
-                try:
-                    for watcher in self.__nodeAddDoneObservers:
-                        watcher(result)
-                except KeyError as e:
-                    LOGGER.exception('KeyError in NodeDone: {}'.format(e), exc_info=True)
+                pub.publish(self.ADDNODEDONE, None, result)
             #else:
             #    del self.nodes[result.get('address')]
         except (KeyError, ValueError) as err:
