@@ -27,12 +27,11 @@ class ISY(object):
 
         message = {'getIsyInfo': {}}
         ILOGGER.debug('ISYINFO: sending {} to PG3 core'.format(message))
-        ILOGGER.error('ISYINFO: sending {} to PG3 core'.format(message))
         self.poly.send(message, 'system')
 
 
     def _info(self, info):
-        ILOGGER.error('ISYINFO: Got ISY data from PG3')
+        ILOGGER.debug('ISYINFO: Got ISY data from PG3')
         self._isy_ip = info['isy_ip_address']
         self._isy_user = info['isy_username']
         self._isy_pass = info['isy_password']
