@@ -61,21 +61,21 @@ class pub(object):
     topics = {}
 
     @staticmethod
-    def subscribe(topic, callback, address=None):
+    def subscribe(topic, callback, address):
         if int(topic) >= len(pub.topic_list):
             raise IndexError
 
         if pub.topic_list[topic] not in pub.topics:
-            pub.topics[pub.topic_list[topic]] = [{callback, address}]
+            pub.topics[pub.topic_list[topic]] = [[callback, address]]
         else:
-            pub.topics[pub.topic_list[topic]].append({callback, address})
+            pub.topics[pub.topic_list[topic]].append([callback, address])
 
     @staticmethod
     def publish(topic, address, *argv):
         if pub.topic_list[topic] in pub.topics:
-            for watcher, addr in pub.topics[pub.topic_list[topic]]:
-                if addr == address:
-                   watcher(*argv)
+            for item in pub.topics[pub.topic_list[topic]]:
+                if item[1] == address:
+                    item[0](*argv)
         
 
 
