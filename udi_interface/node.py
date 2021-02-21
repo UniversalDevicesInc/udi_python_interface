@@ -47,6 +47,9 @@ class Node(object):
             return deepcopy(drivers)
         """
 
+    def updateDrivers(self, drivers):
+        self.drivers = deepcopy(drivers)
+
     def getDriver(self, dv):
         """ Get the driver object.
 
@@ -94,7 +97,7 @@ class Node(object):
     def reportDrivers(self):
         NLOGGER.info('Updating All Drivers to ISY for {}({})'.format(
             self.name, self.address))
-        self.updateDrivers(self.drivers)
+        #self.updateDrivers(self.drivers)
         message = {'set': []}
         for driver in self.drivers:
             message['set'].append(

@@ -478,10 +478,10 @@ class Interface(object):
                     n = self.nodes[node['address']]
                     n.updateDrivers(node['drivers']) 
                     n.config = node
-                    n.isPrimary = node['isprimary']
+                    n.isPrimary = node['isPrimary']
                     n.timeAdded = node['timeAdded']
                     n.enabled = node['enabled']
-                    n.added = node['added']
+                    n.private = node['private']
 
         if 'logLevel' in config:
             self.currentLogLevel = config['logLevel'].upper()
@@ -604,8 +604,7 @@ class Interface(object):
                     LOGGER.error('_parseInput: failed {}.runCmd({}) {}'.format(
                         item['address'], item['cmd'], err), exc_info=True)
             else:
-                LOGGER.error('_parseInput: received command {} for a node that is not in memory: {}'.format(
-                    item['cmd'], item['address']))
+                LOGGER.error('_parseInput: node address {} does not exist. {}'.format(item['address'], item))
         elif key == 'addnode':
             self._handleResult(item)
         elif key == 'delete':
@@ -719,6 +718,7 @@ class Interface(object):
         }
         self.send(message, 'command')
         self._nodes[node.address] = node
+        self.nodes[node.address] = node
 
         """
         This is too early to call the node's start function. At this point
