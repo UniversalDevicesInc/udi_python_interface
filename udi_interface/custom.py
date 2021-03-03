@@ -99,6 +99,9 @@ class Custom(dict):
         else:
             return None
 
+    def __len__(self):
+        return len(self.__dict__['_rawdata'])
+
     def delete(self, key):
         if key in self._rawdata:
             self._rawdata.pop(key)
