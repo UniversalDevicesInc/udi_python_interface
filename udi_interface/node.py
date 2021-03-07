@@ -123,8 +123,8 @@ class Node(object):
             }]
         }
         if value is not None and uom is not None:
-            message['command']['value'] = str(value)
-            message['command']['uom'] = uom
+            message['command'][0]['value'] = str(value)
+            message['command'][0]['uom'] = uom
         self.poly.send(message, 'command')
 
     def runCmd(self, command):
@@ -135,6 +135,10 @@ class Node(object):
                 fun(self, command)
             else:
                 NLOGGER.error('command {} not defined'.format(command['cmd']))
+        elif 'success' in command:
+            if not command['success']:
+                NLOGGER.error('Command message failed: {}'.format(command))
+
         else:
             NLOGGER.error('Invalid command message: {}'.format(command))
 
