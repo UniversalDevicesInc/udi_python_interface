@@ -56,6 +56,7 @@ class pub(object):
          'poll',
          'log_level',
          'isy_info',
+         'config_done',
          ]
 
     topics = {}
@@ -97,6 +98,7 @@ class Interface(object):
     POLL              = 11
     LOGLEVEL          = 12
     ISY               = 13
+    CONFIGDONE        = 14
 
     """
     Polyglot Interface Class
@@ -527,6 +529,8 @@ class Interface(object):
                 if isinstance(input[key], list):
                     for item in input[key]:
                         self._handleInput(key, item)
+                    if key == 'getAll':
+                        pub.publish(self.CONFIGDONE, None, None)
                 else:
                     self._handleInput(key, input[key])
             self.inQueue.task_done()
