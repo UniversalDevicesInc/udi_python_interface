@@ -159,38 +159,44 @@ if __name__ == "__main__":
 
 ##### The Interface class events
 
-`onConfig` is triggered whenever there is a change in the configuration. The
-config is passed as a parameter. You can check for config.isInitialConfig
-to know if the is the first config received. Use this for initialization
-when you want to have a working config loaded.
+The interface class implements a subscription / publish interface that
+node servers can use to subscribe to various events.  To subscribe to
+an event, the node server will call the subscribe method with the event_id,
+the node server function to call into and optionally and node address:
 
-'onCustomparams' is triggered whenever there is a change in the custom
-parameters.  The new custom parameter data is passed as a parameter.
-The custom parameter object will have a property newParamsDetected set to
-true if the custom parameters have changed.
+`subscribe(event_id, callback, [address])` 
 
-'onCustomtypedparams' is triggered whenever there is a change in the custom
-typed parameters.  The new custom type parameter data is passed as a parameter.
+The following event_id's are defined:
+  * CONFIG            - Subscribe to configuration data
+  * START             - Subscribe to node server start events
+  * STARTDONE         - Subscribe to start finished events
+  * STOP              - Subscribe to node server stop events
+  * DELETE            - Subscribe to node server delete events
+  * ADDNODEDONE       - Subscribe to node add complete events
+  * CUSTOMDATA        - Subscribe to custom data 
+  * CUSTOMPARAMS      - Subscribe to parameter data
+  * CUSTOMTYPEDPARAMS - Subscribe to typed parameter data
+  * CUSTOMNS          - Subscribe to node server specific data
+  * NOTICES           - Subscribe to notice data
+  * POLL              - Subscribe to shortPoll/longPoll events
+  * LOGLEVEL          - Subscribe to log level change events
+  * ISY               - Subscribe to ISY info data
+  * CONFIGDONE        - Subscribe to initial configuration data sent event
 
-'onCustomdata' is triggered whenever there is a change in the custom
-data.  The new custom data is passed as a parameter.
+The data events will send the specific type of data, when that data
+changes in PG3.  For example, when the user changes a custom parameter,
+the CUSTOMPARAMS event will be published with the current (changed) 
+custom parameter data.
 
-'onNotice' is triggered whenever there is a change in the notices.  The notices
-are passed as a parameter.
+The 'done' events will be published when the specific action has completed.
+For example, STARTDONE will be published, when the start callback function
+has finished executing.  CONFIGDONE will be published after the interface 
+has recieved all the initial configuration data from PG3.
 
-`onPoll` is triggered frequently, based on your short poll and long poll values.
-The longPoll parameter is a flag telling you if this is a long poll or short
-poll.
+The POLL event is published periodically based on the shortPoll and
+longPoll configuration settings.  Which type of poll triggered the event
+will sent in the event data. 
 
-`onStart` is triggered and runs the node's start method when the node has been added.
-
-`onStop` is triggered whenever the node server is being stopped.
-
-`onDelete` is triggered whenever the user is deleting the NodeServer.
-
-`onStartDone` is triggered whenever a node's start method completes.
-
-`onAddNodeDone` is triggered whenever a node add has finished.
 
 ##### The Interface class methods
 
