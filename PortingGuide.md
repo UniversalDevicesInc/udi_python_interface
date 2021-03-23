@@ -6,14 +6,18 @@
  * Instantiate the Interface class object
    Parameter changes from a name to an array of classes.  Can be an empty arrary
 
+   ``` Python
    polyinterface.Interface() becomes udi_interface.Interface([])
+   ```
 
  * Starting the interface remains the same
 
  * Instantiate a node (typically the controller node)
    When creating a node you need to pass the interface object, primary address,
    address, and name.  I.E.:
+      ``` Python
       control = TemplateController(polyglot, 'controller', 'controller', 'Template')
+      ```
       NOTE: PG3 uses the special address 'controller' to identify which node it should update with node server status.
 
  * Call interface object runForever() method instead of controller method.
@@ -25,7 +29,9 @@
  * Parent class for your controller node is a Node class object. Previously,
    the controller was based on a Controller class (superset of Node class)
 
+   ``` Python
    class MyController(udi_interface.Node)
+   ```
 
  * All controller specific methods have moved into the interface. 
 
@@ -33,23 +39,33 @@
    nodes can subscribe to.  Most controller nodes will subscribe to the 
    following events:
 
+   ``` Python
    polyglot.subscribe(polyglot.CUSTOMPARAMS, self.parameterHandler)
+   ```
      - interface will publish updated custom parameter data when it changes
+   ``` Python
    polyglot.subscribe(polyglot.START, self.start, address)
+   ```
      - interface will publish a notice that it's ready for the node(controller) to start
+   ``` Python
    polyglot.subscribe(polyglot.POLL, self.poll)
+   ```
      - interface will publish long Poll and short Poll events
 
  * The interface module now has a generic data class.  This reflects changes in the Polyglot core to separate the various data types.
 
    Create local data class objects for the datatypes you need to use
 
-   - self.Parameters = Custom(polyglot, 'customparams')
-   - self.Notices = Custom(polyglot, 'notices')
-   - self.Data = Custom(polyglot, 'customdata')
+   ``` Python
+       self.Parameters = Custom(polyglot, 'customparams')
+       self.Notices = Custom(polyglot, 'notices')
+       self.Data = Custom(polyglot, 'customdata')
+   ```
 
    You can create node server specific data classes that will be saved in the Polyglot database.
-   - self.MyData = Custom(polyglot, 'mydata')
+   ``` Python
+   self.MyData = Custom(polyglot, 'mydata')
+   ```
 
  * The bottom of your controller (or main) node needs to register itself with the interface.
 
@@ -66,8 +82,10 @@
    subscribe to custom parameters, your handler function will be called with
    the custom parameters passed in as the only parameter.
 
+   ``` Python
    def parameterHandler(self, params):
        self.Parameters.load(params)
+   ```
 
    The above will load the current custom parameters into your local data store.
    See the API document for more information about what you can do with the
@@ -83,7 +101,9 @@
 
    To display notices, add a notice to your Custom data store for notices.
 
+   ``` Python
    self.Notices['new notice'] = 'This is a new notice'
+   ```
 
    Setting a notice will cause it propogate to PG3 and then to the UI.
 
