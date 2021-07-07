@@ -234,7 +234,8 @@ class Interface(object):
             inputCmds = ['query', 'command', 'addnode', 'stop',
                          'status', 'shortPoll', 'longPoll', 'delete',
                          'config', 'customdata', 'customparams', 'notices',
-                         'getIsyInfo', 'getAll', 'setLogLevel']
+                         'getIsyInfo', 'getAll', 'setLogLevel',
+                         'customtypeddata']
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
             #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
@@ -287,7 +288,7 @@ class Interface(object):
                     LOGGER.info('customparamsdoc response')
                 else:
                     LOGGER.error(
-                        'Invalid command received in message from PG3: \'{}\''.format(key))
+                        'Invalid command received in message from PG3: \'{}\' {}'.format(key, parsed_msg[key]))
         except (ValueError) as err:
             LOGGER.error('MQTT Received Payload Error: {}'.format(
                 err), exc_info=True)
@@ -541,6 +542,14 @@ class Interface(object):
             self._inConfig(item)
         elif key == 'customdata':
             #LOGGER.debug('customData: {}'.format(item))
+            try:
+                value = json.loads(item)
+            except ValueError as e:
+                value = item.get('value')
+
+            pub.publish(self.CUSTOMDATA, None, value)
+        elif key == 'customtypeddata':
+            #LOGGER.debug('customTypedData: {}'.format(item))
             try:
                 value = json.loads(item)
             except ValueError as e:
