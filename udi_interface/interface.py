@@ -76,7 +76,7 @@ class pub(object):
         if pub.topic_list[topic] in pub.topics:
             for item in pub.topics[pub.topic_list[topic]]:
                 if item[1] == address:
-                    item[0](*argv)
+                    Thread(target=item[0], args=[*argv]).start()
         
 
 
