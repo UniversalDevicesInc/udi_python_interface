@@ -774,9 +774,9 @@ class Interface(object):
         """
         LOGGER.info('Removing node {}'.format(address))
         message = {
-            'removenode': {
+            'removenode': [{
                 'address': address
-            }
+            }]
         }
         self.send(message, 'command')
 
