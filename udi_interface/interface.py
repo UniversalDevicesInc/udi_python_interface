@@ -57,6 +57,7 @@ class pub(object):
          'log_level',
          'isy_info',
          'config_done',
+         'custom_params_doc',
          ]
 
     topics = {}
@@ -99,6 +100,7 @@ class Interface(object):
     LOGLEVEL          = 12
     ISY               = 13
     CONFIGDONE        = 14
+    CUSTOMPARAMSDOC   = 15
 
     """
     Polyglot Interface Class
@@ -145,7 +147,7 @@ class Interface(object):
         self.useSecure = True
         self._nodes = {}
         self.nodes = {}
-        if self.pg3init['secure'] is 1:
+        if self.pg3init['secure'] == 1:
             self.sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
             self.sslContext.check_hostname = False
         self._mqttc.tls_set_context(self.sslContext)
@@ -376,7 +378,7 @@ class Interface(object):
         # Read the SERVER info from the json.
         try:
             with open(Interface.SERVER_JSON_FILE_NAME) as data:
-                serverdata = json.load(data)
+                self.serverdata = json.load(data)
             data.close()
         except Exception as err:
             LOGGER.error('get_server_data: failed to read file {0}: {1}'.format(
@@ -392,9 +394,9 @@ class Interface(object):
             version = '0.0.0.0'
         self.serverdata['version'] = version
 
-        if not 'profile_version' in serverdata:
+        if not 'profile_version' in self.serverdata:
             self.serverdata['profile_version'] = "NotDefined"
-        LOGGER.debug('get_server_data: {}'.format(serverdata))
+        LOGGER.debug('get_server_data: {}'.format(self.serverdata))
 
     def stop(self):
         """
@@ -590,23 +592,26 @@ class Interface(object):
             customtypedparams, customdata
             """
             try:
-                value = json.loads(item.get('value'))
-
-                #LOGGER.error('GETALL -> {} {}'.format(item.get('key'), value))
-                if item.get('key') == 'notices':
-                    pub.publish(self.NOTICES, None, value)
-                elif item.get('key') == 'customparams':
-                    pub.publish(self.CUSTOMPARAMS, None, value)
-                elif item.get('key') == 'customtypedparams':
-                    pub.publish(self.CUSTOMTYPEDPARAMS, None, value)
-                elif item.get('key') == 'customdata':
-                    pub.publish(self.CUSTOMDATA, None, value)
-                elif item.get('key') == 'idata':
-                    self._ifaceData.load(value)
+                if item.get('key') == 'customparamsdoc':
+                    pub.publish(self.CUSTOMPARAMSDOC, None, item.get('value'))
                 else:
-                    # node server custom key
-                    LOGGER.debug('Key {} should be passed to node server.'.format(item.get('key')))
-                    pub.publish(self.CUSTOMNS, None, item.get('key'), value)
+                    value = json.loads(item.get('value'))
+
+                    #LOGGER.error('GETALL -> {} {}'.format(item.get('key'), value))
+                    if item.get('key') == 'notices':
+                        pub.publish(self.NOTICES, None, value)
+                    elif item.get('key') == 'customparams':
+                        pub.publish(self.CUSTOMPARAMS, None, value)
+                    elif item.get('key') == 'customtypedparams':
+                        pub.publish(self.CUSTOMTYPEDPARAMS, None, value)
+                    elif item.get('key') == 'customdata':
+                        pub.publish(self.CUSTOMDATA, None, value)
+                    elif item.get('key') == 'idata':
+                        self._ifaceData.load(value)
+                    else:
+                        # node server custom key
+                        LOGGER.debug('Key {} should be passed to node server.'.format(item.get('key')))
+                        pub.publish(self.CUSTOMNS, None, item.get('key'), value)
             except ValueError as e:
                 LOGGER.error('Failure trying to load {} data'.format(item.get('key')))
         elif key == 'command':
