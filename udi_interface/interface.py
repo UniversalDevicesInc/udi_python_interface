@@ -58,6 +58,7 @@ class pub(object):
          'isy_info',
          'config_done',
          'custom_params_doc',
+         'custom_typed_data',
          ]
 
     topics = {}
@@ -101,6 +102,7 @@ class Interface(object):
     ISY               = 13
     CONFIGDONE        = 14
     CUSTOMPARAMSDOC   = 15
+    CUSTOMTYPEDDATA   = 16
 
     """
     Polyglot Interface Class
@@ -237,7 +239,7 @@ class Interface(object):
                          'status', 'shortPoll', 'longPoll', 'delete',
                          'config', 'customdata', 'customparams', 'notices',
                          'getIsyInfo', 'getAll', 'setLogLevel',
-                         'customtypeddata']
+                         'customtypeddata', 'customtypedparams']
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
             #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
@@ -557,7 +559,7 @@ class Interface(object):
             except ValueError as e:
                 value = item.get('value')
 
-            pub.publish(self.CUSTOMDATA, None, value)
+            pub.publish(self.CUSTOMTYPEDDATA, None, value)
         elif key == 'customparams':
             #LOGGER.debug('customParams: {}'.format(item))
             try:
@@ -606,6 +608,8 @@ class Interface(object):
                         pub.publish(self.CUSTOMTYPEDPARAMS, None, value)
                     elif item.get('key') == 'customdata':
                         pub.publish(self.CUSTOMDATA, None, value)
+                    elif item.get('key') == 'customtypeddata':
+                        pub.publish(self.CUSTOMTYPEDDATA, None, value)
                     elif item.get('key') == 'idata':
                         self._ifaceData.load(value)
                     else:
