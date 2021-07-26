@@ -174,6 +174,7 @@ The following event_id's are defined:
   * DELETE            - Subscribe to node server delete events
   * ADDNODEDONE       - Subscribe to node add complete events
   * CUSTOMDATA        - Subscribe to custom data 
+  * CUSTOMTYPEDDATA   - Subscribe to typed custom data
   * CUSTOMPARAMS      - Subscribe to parameter data
   * CUSTOMTYPEDPARAMS - Subscribe to typed parameter data
   * CUSTOMNS          - Subscribe to node server specific data
@@ -294,7 +295,7 @@ following API
 
 `custom.dump()`          - return the raw dict, for debugging
 
-Here's an example
+Here's an example (example needs improvement)
 ```python
 """
    Custom parameters definitions in front end UI configuration screen
@@ -313,6 +314,8 @@ Here's an example
    	 single / list of single values
 """
 
+self.CustomParams = Custom(polyglot, 'customtypedparams')
+
 typedParams = [
   {name: 'host', title: 'Host', isRequired: true},
   {name: 'port', title: 'Port', isRequired: true, type: 'NUMBER'},
@@ -321,7 +324,7 @@ typedParams = [
   # { name: 'list', title: 'List of values', isList:true }
 ]
 
-self.TypedParams.config = typedParams
+self.CustomParams = typedParams
 ```
 
 ### The ISY class
