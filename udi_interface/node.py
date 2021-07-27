@@ -50,14 +50,14 @@ class Node(object):
     def updateDrivers(self, drivers):
         self.drivers = deepcopy(drivers)
 
-    def getDriver(self, dv):
-        """ Get the driver object.
-
-        In node.js interface, this gets the driver object, not value.
-
+    def getDriver(self, driver):
         """
-        if dv in self.drivers:
-            return self.drivers[dv]
+        Get the driver value
+        """
+        for dv in self.drivers:
+            LOGGER.debug('{} - {} :: getting dv {}'.format(dv['driver'], dv['value'], driver))
+            if dv['driver'] == driver:
+                return dv['value']
 
         return None
 

@@ -105,7 +105,7 @@ The list of drivers defines the node statuses, the uom, and contains the value.
 
 ##### The Node class has these standard methods
 
-self.getDriver(driver), to get the driver object.
+self.getDriver(driver), to get the driver value.
 
 self.setDriver(driver, value, report=true, forceReport=false, uom=null), to set a driver to a value
 (example set ST to 100).
