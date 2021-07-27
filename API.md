@@ -295,26 +295,46 @@ following API
 
 `custom.dump()`          - return the raw dict, for debugging
 
-Here's an example (example needs improvement)
-```python
-"""
-   Custom parameters definitions in front end UI configuration screen
-   Accepts list of objects with the following properties:
-   name - used as a key when data is sent from UI
-   title - displayed in UI
-   defaultValue - optional
-   type - optional, can be 'NUMBER', 'STRING' or 'BOOLEAN'. Defaults to 'STRING'
-   desc - optional, shown in tooltip in UI
-   isRequired - optional, true/false
-   isList - optional, true/false, if set this will be treated as list of values
-      or objects by UI
-   params - optional, can contain a list of objects.
+There are a few pre-defined storage containes that correspond roughly to
+the various config structures of PG2. 
+
+`customparams` key / value pairs that represent the custom parameters presented
+to the user via the UI. These can also be set to default values in the 
+server.json file.  Sent to the node server via the CUSTOMPARAMS event when
+the node server first starts and whenever the user modifies them.
+
+`notices` Holds the notices currently being displayed to the user. The key
+is an internal name for the notice and the value is the notice text.
+
+`customdata` key / value pairs of node server specific data.
+
+`customtypedparams`  A list of custom parameter definitions.  The UI uses this
+for more complex parameter specifications than the key/value pairs above. A
+parameter definition consist of the following:
+
+   * name - used as a key when data is sent from UI
+   * title - displayed in UI
+   * defaultValue - optional
+   * type - optional, can be 'NUMBER', 'STRING' or 'BOOLEAN'. Defaults to 'STRING'
+   * desc - optional, shown in tooltip in UI
+   * isRequired - optional, true/false
+   * isList - optional, true/false, if set this will be treated as list of
+   values or objects by UI
+   * params - optional, can contain a list of objects.
    	 If present, then this (parent) is treated as object /
    	 list of objects by UI, otherwise, it's treated as a
    	 single / list of single values
-"""
 
-self.CustomParams = Custom(polyglot, 'customtypedparams')
+`customtypeddata` the user entered data for a custom typed parameter
+configuration. An updated version is sent via the CUSTOMTYPEDDATA event 
+whenever the user modifies the parameters in the UI.
+
+Here's an example (example needs improvement)
+```python
+
+polyglot.subscribe(polyglot.CUSTOMTYPEDDATA, self.parameterHandler)
+self.CustomTypedParams = Custom(polyglot, 'customtypedparams')
+self.CustomParams = Custom(polyglot, 'customtypeddata')
 
 typedParams = [
   {name: 'host', title: 'Host', isRequired: true},
@@ -324,7 +344,13 @@ typedParams = [
   # { name: 'list', title: 'List of values', isList:true }
 ]
 
-self.CustomParams = typedParams
+self.CustomTypedParams.load(typedParams)
+
+"""
+Called when the user modifies the custom parameters configured above.
+"""
+def parameterHandler(self, custom_params):
+   self.CustomParams.load(custom_params)
 ```
 
 ### The ISY class
