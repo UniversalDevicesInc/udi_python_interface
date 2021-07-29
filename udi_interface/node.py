@@ -55,7 +55,7 @@ class Node(object):
         Get the driver value
         """
         for dv in self.drivers:
-            LOGGER.debug('{} - {} :: getting dv {}'.format(dv['driver'], dv['value'], driver))
+            NLOGGER.debug('{} - {} :: getting dv {}'.format(dv['driver'], dv['value'], driver))
             if dv['driver'] == driver:
                 return dv['value']
 
