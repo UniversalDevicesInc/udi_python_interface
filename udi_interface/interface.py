@@ -37,6 +37,8 @@ usage:
       pub.subscribe(CONFIG, configHandler)
 
       pub.publish(CONFIG, config_data)
+
+      if pub.hasSubscriber(CONFIG):
 """
 class pub(object):
 
@@ -79,7 +81,12 @@ class pub(object):
             for item in pub.topics[pub.topic_list[topic]]:
                 if item[1] == address:
                     Thread(target=item[0], args=[*argv]).start()
-        
+
+    @staticmethod
+    def hasSubscriber(topic):
+        if pub.topic_list[topic] in pub.topics:
+            return True
+        return False
 
 
 class Interface(object):
@@ -415,7 +422,6 @@ class Interface(object):
                 self._server, self._port))
             self._mqttc.loop_stop()
             self._mqttc.disconnect()
-        pub.publish(self.STOP, None)
 
     def send(self, message, type):
         """
@@ -649,7 +655,9 @@ class Interface(object):
                 self.status()
         elif key == 'stop':
             LOGGER.info('Received stop from Polyglot... Shutting Down.')
-            self.stop()
+            pub.publish(self.STOP, None)
+            if not pub.hasSubscriber(self.STOP):
+                self.stop()
         elif key == 'setLogLevel':
             try:
                 self.currentLogLevel = item['level'].upper()

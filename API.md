@@ -203,6 +203,8 @@ will sent in the event data.
 
 start(), to initiate the MQTT connection and start communicating with Polyglot.
 
+stop(), to stop the MQTT connection.  This will be automatically called if Polyglot sends a stop command and the node server has not subscribed to the STOP event.  If the node server has subscribed to the STOP event, it is the node server's responsibility to call the interface.stop() method.
+
 ready(), to let the interface know that we are configured to handle events. This should be called near the end of the controller node initialization after all the event callbacks have been registerd.
 
 isConnected(), which tells you if this NodeServer and Polyglot are connected via MQTT.
