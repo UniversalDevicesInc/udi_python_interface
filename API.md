@@ -199,6 +199,12 @@ longPoll configuration settings.  Which type of poll triggered the event
 will sent in the event data. 
 
 
+##### The Interface class variables
+
+Notices, a global list of all active notices for the node server. This is an
+instance of the Custom class so you can add, delete or clear entries using
+the Custom class API.
+
 ##### The Interface class methods
 
 start(), to initiate the MQTT connection and start communicating with Polyglot.
