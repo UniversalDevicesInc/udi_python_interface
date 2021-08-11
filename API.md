@@ -2,23 +2,23 @@
 
 This is the Polyglot interface API module that is used to develop a Python based NodeServer for Polyglot v3.
 
-This has been tested with Polyglot-v3 version 3.0.14.
+This has been tested with Polyglot-v3 version 3.0.20.
 
 ## Installation
 
-You need to have Python 3.5+ and pip installed. This version has been tested with Python 3.7.5
+You need to have Python 3.5+ and pip installed. This version has been tested with Python 3.8
 
 Install using pip (or pip3) from the Python Index:
 ```
-  sudo pip polyinterface-v3
+  sudo pip udi_interface
 ```
 
 ## Starting your NodeServer build
 
 If you run in to any issues please ask your questions on the [UDI Polyglot Forums](http://forum.universal-devices.com/forum/111-polyglot/) or the UDI Slack channel.
 
-To get started, use the [Python NodeServer template](https://github.com/UniversalDevicesInc/poly-template-TODO).
-This is a simple but fully functional NodeServer.
+To get started, use the [Python NodeServer template](https://github.com/UniversalDevicesInc/udi-poly-template-python) for refrence.
+This is a simple but fully functional NodeServer. It demonstrates various API functions.  Note, that while functional, there are many parts that are simply examples.  Not everything being demonstrated is required for every node server.
 
 One of the first things you will want to do is to create your profile files. See the profile folder from the NodeServer
 template for an example. Please refer to the [ISY Version 5 API](https://wiki.universal-devices.com/index.php?title=ISY_Developers:API:V5) to learn how to create your profile files.
