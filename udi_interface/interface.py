@@ -173,6 +173,9 @@ class Interface(object):
         """ persistent data storage for Interface """
         self._ifaceData = Custom(self, 'idata')  # Interface data
 
+        """ persistent storage for Notices """
+        self.Notices = Custom(self, 'notices')
+
         try:
             self.network_interface = self.getNetworkInterface()
             LOGGER.info('Connect: Network Interface: {}'.format(
@@ -589,6 +592,7 @@ class Interface(object):
             except ValueError as e:
                 value = item.get('value')
 
+            self.Notices.load(value)
             pub.publish(self.NOTICES, None, value)
         elif key == 'getIsyInfo':
             pub.publish(self.ISY, None, item)
@@ -601,12 +605,13 @@ class Interface(object):
             """
             try:
                 if item.get('key') == 'customparamsdoc':
-                    pub.publish(self.CUSTOMPARAMSDOC, None, item.get('value'))
+                    pubpublish(self.CUSTOMPARAMSDOC, None, item.get('value'))
                 else:
                     value = json.loads(item.get('value'))
 
                     #LOGGER.error('GETALL -> {} {}'.format(item.get('key'), value))
                     if item.get('key') == 'notices':
+                        self.Notices.load(value)
                         pub.publish(self.NOTICES, None, value)
                     elif item.get('key') == 'customparams':
                         pub.publish(self.CUSTOMPARAMS, None, value)
