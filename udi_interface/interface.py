@@ -605,7 +605,7 @@ class Interface(object):
             """
             try:
                 if item.get('key') == 'customparamsdoc':
-                    pubpublish(self.CUSTOMPARAMSDOC, None, item.get('value'))
+                    pub.publish(self.CUSTOMPARAMSDOC, None, item.get('value'))
                 else:
                     value = json.loads(item.get('value'))
 
