@@ -159,7 +159,7 @@ class Interface(object):
         if self.pg3init['secure'] == 1:
             self.sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
             self.sslContext.check_hostname = False
-        self._mqttc.tls_set_context(self.sslContext)
+            self._mqttc.tls_set_context(self.sslContext)
         self.loop = None
         self.inQueue = queue.Queue()
         self.isyVersion = None
