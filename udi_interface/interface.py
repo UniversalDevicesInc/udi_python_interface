@@ -510,7 +510,8 @@ class Interface(object):
                 self.currentLogLevel = 'DEBUG'
 
             GLOBAL_LOGGER.setLevel(self.currentLogLevel)
-            pub.publish(self.LOGLEVEL, None, self.currentLogLevel)
+            level = logging.getLevelName(self.currentLogLevel)
+            pub.publish(self.LOGLEVEL, None, { 'name': self.currentLogLevel, 'level': level }  )
 
         pub.publish(self.CONFIG, None, config)
 
@@ -681,7 +682,8 @@ class Interface(object):
                 NLOGGER.setLevel(self.currentLogLevel)
                 ILOGGER.setLevel(self.currentLogLevel)
 
-                pub.publish(self.LOGLEVEL, None, item['level'])
+                level = logging.getLevelName(self.currentLogLevel)
+                pub.publish(self.LOGLEVEL, None, { 'name': self.currentLogLevel, 'level': level }  )
 
             except (KeyError, ValueError) as err:
                 LOGGER.error('Failed to set {}: {}'.format(key, err), exc_info=True)
