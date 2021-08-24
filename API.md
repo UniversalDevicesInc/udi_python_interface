@@ -38,18 +38,18 @@ The class returned inherits from Polyglot.Node, Polyglot being the Polyglot modu
 LOGGER = getlogger('DIMMER')
 
 # This is your custom Node class
-class MyNode(polyinterface.Node):
+class MyNode(udi_interface.Node):
 	id = 'VNODE_DIMMER'
 
-	# polyinterface: handle to the interface class
+	# udi_interface: handle to the interface class
 	# primary: address of a parent node or same as address if primary
 	# address: your node address, without the leading 'n000_'
 	# name: your node's name
-	def __init__(self, polyinterface, primary, address, name):
+	def __init__(self, udi_interface, primary, address, name):
 		self.parent = primary
 		self.name = name
 		self.address = address
-		self.poly = polyinterface
+		self.poly = udi_interface
 
 	# Commands that this node can handle.  Should match the
 	# 'accepts' section of the nodedef file.
@@ -80,7 +80,7 @@ class MyNode(polyinterface.Node):
 
 `self.id` (This is the Nodedef ID)
 
-`self.polyinterface` (Gives access to the Polyglot interface)
+`self.udi_interface` (Gives access to the Polyglot interface)
 
 `self.primary` (Primary address)
 
@@ -136,15 +136,15 @@ Once instantiated, you can use events triggered by the interface such as `config
 
 ```python
 
-import polyinterface-v3
+import udi_interface
 from nodes import ControllerNode
 from nodes import MyNode
 
 if __name__ == "__main__":
 	try:
 		# Create an instance of the Polyglot interface. We need to
-		# pass in what?  node.js passes in the node classes.
-		polyglot = polyinterface.Interface('what')
+		# pass in array of node classes (or an empty array).
+		polyglot = udi_interface.Interface([])
 
 		# Initialize the interface
 		polyglot.start()
@@ -197,6 +197,17 @@ has recieved all the initial configuration data from PG3.
 The POLL event is published periodically based on the shortPoll and
 longPoll configuration settings.  Which type of poll triggered the event
 will sent in the event data. 
+
+Example to get initial log level
+```python
+    polyglot.subscribe(polyglot.CONFIG, configHandler)
+
+    def configHandler(self, cfg_data):
+       loglevel = cfg_data['logLevel']
+       loglist = cfg_data['logLevelList']
+
+       level_num = udi_interface.LOG_HANDLER.getLevelName(loglevel)
+```
 
 
 ##### The Interface class variables
@@ -433,7 +444,7 @@ This polyglot interface uses a logging mecanism that you can also use in your
 NodesServer.
 
 ```python
-LOGGER = polyinterface.LOGGER
+LOGGER = udi_interface.LOGGER
 LOGGER = getlogger('myModule')
 
 LOGGER.debug('Debugging');
@@ -445,7 +456,7 @@ LOGGER.error('Error...');
  Logging is controlled by the user selecting a log level using the 
  selector list in the node server's dashboard entry on the Polyglot UI.
 
- The user selection controls polyinterface.LOGGER by default. Logging
+ The user selection controls udi_interface.LOGGER by default. Logging
  within the interface module is set to error by default, but can be
  overriden in the node server with module.xLOGGER.setLevel().  
 
