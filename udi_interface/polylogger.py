@@ -45,7 +45,7 @@ class PolyLogger:
         self.handler.setFormatter(formatter)
 
     def getLevelName(self, level):
-        return loggging.getLevelName(level)
+        return logging.getLevelName(level)
 
     def set_basic_config(self, enable=True, level=None):
         self.logger.info('set_basic_config: enable={} level={}'.format(enable,level))
