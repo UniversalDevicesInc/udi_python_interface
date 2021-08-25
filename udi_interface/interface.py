@@ -437,10 +437,15 @@ class Interface(object):
             warnings.warn('payload not a dictionary')
             return False
 
+        timeout = 10
         while not self.subscribed:
-            # can we block here?
-            LOGGER.warning('MQTT Send waiting on connection.')
+            if timeout == 0:
+                LOGGER.error('MQTT Send timeout :: {}.'.format(messsage))
+                return
+
+            LOGGER.warning('MQTT Send waiting on connection :: {}'.format(message))
             time.sleep(3)
+            timeout -= 1
             
         try:
             validTypes = ['status', 'command', 'system', 'custom']
