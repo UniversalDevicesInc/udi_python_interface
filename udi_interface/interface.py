@@ -1012,7 +1012,8 @@ class Interface(object):
         # we need the current list
         lid = 0
         for l in self._levelsList:
-            lid = int(l['id']) if l['id'] > lid
+            if l['id'] > lid:
+                lid = int(l['id'])
 
         # Add new level to list
         self._levelsList.append( {
