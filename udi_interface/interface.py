@@ -169,6 +169,7 @@ class Interface(object):
         Interface.__exists = True
         self.custom_params_docs_file_sent = False
         self.custom_params_pending_docs = ''
+        self._levelsList = []
 
         """ persistent data storage for Interface """
         self._ifaceData = Custom(self, 'idata')  # Interface data
@@ -498,6 +499,9 @@ class Interface(object):
                     n.timeAdded = node['timeAdded']
                     n.enabled = node['enabled']
                     n.private = node['private']
+
+        if 'logLevelList' in config:
+            self._levelsList = config['logLevelList']
 
         if 'logLevel' in config:
             self.currentLogLevel = config['logLevel'].upper()
@@ -994,6 +998,27 @@ class Interface(object):
 
 
         message = {'setLogList': {'levels': lvls}}
+        LOGGER.debug('Sending message {}'.format(message))
+        self.send(message, 'system')
+
+    def addLogLevel(self, name, lvl, str_name):
+        logging.addLevelName(lvl, name)
+
+        # we need the current list
+        lid = 0
+        for l in self._levelsList:
+            lid = int(l['id']) if l['id'] > lid
+
+        # Add new level to list
+        self._levelsList.append( {
+            'id': lid,
+            'name': str_name,
+            'value': name,
+            'level': lvl
+            })
+
+        # send list to PG3
+        message = {'setLogList': {'levels': self._levelsList}}
         LOGGER.debug('Sending message {}'.format(message))
         self.send(message, 'system')
 

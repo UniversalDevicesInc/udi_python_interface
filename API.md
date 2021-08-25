@@ -284,7 +284,9 @@ getLogLevel(), get the currently configured log level. This is the level that Po
 
 setLogLevel(level), send the specified level to Polyglot to store in its database. This level will then be sent back to the node server and set as the current log level.
 
-setLogList(list), Send the list of log levels for the frontend log level list selector. The 'list' is an array of {display_name:LOGLEVEL} objects.  The user will be presented with the 'display_name' and when selected, it will set the log level to LOGLEVEL.  LOGLEVEL must be one of the valid levels supported by the logger or added via the addLevelName method in the logger.
+addLogLevel(name, level, string_name), Add a new log level to the logger and to the list displayed to the user.  'name' is the level name string (typically all upper case like DEBUG, WARNING, etc.) 'level' is the numeric value of new leel, and string_name is the string to display to the user in the log level selector.
+
+setLogList(list), Send the list of log levels for the frontend log level list selector. The 'list' is an array of {display_name:LOGLEVEL} objects.  The user will be presented with the 'display_name' and when selected, it will set the log level to LOGLEVEL.  LOGLEVEL must be one of the valid levels supported by the logger or added via the addLevelName method in the logger. (DEPRECATED)
 
 Currently you have to pass all values including default ones to add yours.
 ```python
