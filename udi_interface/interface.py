@@ -1027,6 +1027,10 @@ class Interface(object):
         LOGGER.debug('Sending message {}'.format(message))
         self.send(message, 'system')
 
+    def nodes(self):
+        for n in self.nodes:
+            yield self.nodes[n]
+
     def supports_feature(self, feature):
         LOGGER.warning('The supports_feature() function is deprecated.')
         return True

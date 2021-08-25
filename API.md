@@ -246,6 +246,13 @@ this list are your custom class objects.
 
 getNode(address), Returns a single node.
 
+nodes(), is a generator that allows you to easily iterate over the list of nodes. 
+```python
+for n in poly.nodes():
+    if n.address = self.address:
+        n.query()
+```
+
 delNode(node), Allows you to delete the node specified. You need to pass the actual node. Alternatively, you can use
 delNode() directly on the node itself, which has the same effect.
 
