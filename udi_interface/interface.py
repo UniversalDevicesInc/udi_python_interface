@@ -61,6 +61,7 @@ class pub(object):
          'config_done',
          'custom_params_doc',
          'custom_typed_data',
+         'node_server_info',
          ]
 
     topics = {}
@@ -110,6 +111,7 @@ class Interface(object):
     CONFIGDONE        = 14
     CUSTOMPARAMSDOC   = 15
     CUSTOMTYPEDDATA   = 16
+    NSINFO            = 17
 
     """
     Polyglot Interface Class
@@ -254,7 +256,7 @@ class Interface(object):
                          'status', 'shortPoll', 'longPoll', 'delete',
                          'config', 'customdata', 'customparams', 'notices',
                          'getIsyInfo', 'getAll', 'setLogLevel',
-                         'customtypeddata', 'customtypedparams']
+                         'customtypeddata', 'customtypedparams', 'getNsInfo']
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
             #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
@@ -615,6 +617,8 @@ class Interface(object):
             pub.publish(self.NOTICES, None, value)
         elif key == 'getIsyInfo':
             pub.publish(self.ISY, None, item)
+        elif key == 'getNsInfo':
+            pub.publish(self.NSINFO, None, item)
         elif key == 'getAll':
             """
             This is one of the first messages we get from Polyglot.
@@ -748,6 +752,7 @@ class Interface(object):
         LOGGER.debug('Asking PG3 for config/getAll now')
         self.send({'config': {}}, 'system')
         self.send({'getAll': {}}, 'custom')
+        self.send({'getNsInfo': {}},'system')
 
     def isConnected(self):
         """ Tells you if this nodeserver and Polyglot are connected via MQTT """
