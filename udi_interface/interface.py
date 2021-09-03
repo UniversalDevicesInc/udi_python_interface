@@ -188,8 +188,12 @@ class Interface(object):
 
         # attempt to build a list of node server custom classes
         self._nodeClasses = {}
-        for c in classes:
-            self._nodeClasses[c.id] = c
+        if type(classes) is list:
+            for c in classes:
+                try:
+                    self._nodeClasses[c.id] = c
+                except:
+                    LOGGER.error('Invalid class in initial class list')
 
     def subscribe(self, topic, callback, address=None):
         pub.subscribe(topic, callback, address)
@@ -517,6 +521,11 @@ class Interface(object):
                 NLOGGER.setLevel('DEBUG')
                 ILOGGER.setLevel('DEBUG')
                 self.currentLogLevel = 'DEBUG'
+            else:
+                LOGGER.setLevel(self.currentLogLevel)
+                CLOGGER.setLevel(self.currentLogLevel)
+                NLOGGER.setLevel(self.currentLogLevel)
+                ILOGGER.setLevel(self.currentLogLevel)
 
             GLOBAL_LOGGER.setLevel(self.currentLogLevel)
             level = logging.getLevelName(self.currentLogLevel)
