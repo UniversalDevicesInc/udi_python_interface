@@ -157,7 +157,7 @@ class Interface(object):
         self._mqttc.on_log = self._log
         self.useSecure = True
         self._nodes = {}
-        self.nodes = {}
+        self.nodes_internal = {}
         if self.pg3init['secure'] == 1:
             self.sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
             self.sslContext.check_hostname = False
@@ -486,7 +486,7 @@ class Interface(object):
         list?
 
         self._nodes[address] = node properties from config
-        self.nodes[address] = a node object?
+        self.nodes_internal[address] = a node object?
                       - Added by addNode() or updateNode()
                       - addNode will copy driver values from _nodes and
                         replace the default values before sending to core
@@ -502,8 +502,8 @@ class Interface(object):
                 if the node is already in the main node list, use the values
                 from the database to update the node.
                 """
-                if node['address'] in self.nodes:
-                    n = self.nodes[node['address']]
+                if node['address'] in self.nodes_internal:
+                    n = self.nodes_internal[node['address']]
                     n.updateDrivers(node['drivers']) 
                     n.config = node
                     n.isPrimary = node['isPrimary']
@@ -653,9 +653,9 @@ class Interface(object):
             except ValueError as e:
                 LOGGER.error('Failure trying to load {} data'.format(item.get('key')))
         elif key == 'command':
-            if item['address'] in self.nodes:
+            if item['address'] in self.nodes_internal:
                 try:
-                    self.nodes[item['address']].runCmd(item)
+                    self.nodes_internal[item['address']].runCmd(item)
                 except (Exception) as err:
                     LOGGER.error('_parseInput: failed {}.runCmd({}) {}'.format(
                         item['address'], item['cmd'], err), exc_info=True)
@@ -670,14 +670,14 @@ class Interface(object):
         elif key == 'longPoll':
             pub.publish(self.POLL, None, 'longPoll')
         elif key == 'query':
-            if item['address'] in self.nodes:
-                self.nodes[item['address']].query()
+            if item['address'] in self.nodes_internal:
+                self.nodes_internal[item['address']].query()
             elif item['address'] == 'all':
                 # TODO: FIXME: This isn't right now
                 self.query()
         elif key == 'status':
-            if item['address'] in self.nodes:
-                self.nodes[item['address']].status()
+            if item['address'] in self.nodes_internal:
+                self.nodes_internal[item['address']].status()
             elif item['address'] == 'all':
                 # TODO: FIXME: This isn't right now
                 self.status()
@@ -729,7 +729,7 @@ class Interface(object):
                 # Notify listeners that node has been added
                 pub.publish(self.ADDNODEDONE, None, result)
             #else:
-            #    del self.nodes[result.get('address')]
+            #    del self.nodes_internal[result.get('address')]
         except (KeyError, ValueError) as err:
             LOGGER.error('handleResult: {}'.format(err), exc_info=True)
 
@@ -778,7 +778,7 @@ class Interface(object):
         }
         self.send(message, 'command')
         self._nodes[node.address] = node
-        self.nodes[node.address] = node
+        self.nodes_internal[node.address] = node
 
         """
         This is too early to call the node's start function. At this point
@@ -797,15 +797,15 @@ class Interface(object):
 
         Is this an array or a dictionary keyed with address?
         """
-        return self.nodes
+        return self.nodes_internal
 
     def getNode(self, address):
         """
         Get Node by Address of existing nodes. 
         """
         try:
-            if address in self.nodes:
-                    return self.nodes[address]
+            if address in self.nodes_internal:
+                    return self.nodes_internal[address]
             return None
         except KeyError:
             LOGGER.error(
@@ -1043,8 +1043,8 @@ class Interface(object):
         self.send(message, 'system')
 
     def nodes(self):
-        for n in self.nodes:
-            yield self.nodes[n]
+        for n in self.nodes_internal:
+            yield self.nodes_internal[n]
 
     def supports_feature(self, feature):
         LOGGER.warning('The supports_feature() function is deprecated.')
