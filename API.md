@@ -183,6 +183,7 @@ The following event_id's are defined:
   * LOGLEVEL          - Subscribe to log level change events
   * ISY               - Subscribe to ISY info data
   * CONFIGDONE        - Subscribe to initial configuration data sent event
+  * DISCOVER          - Subscribe to user initiated device discovery event
 
 The data events will send the specific type of data, when that data
 changes in PG3.  For example, when the user changes a custom parameter,

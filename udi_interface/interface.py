@@ -62,6 +62,7 @@ class pub(object):
          'custom_params_doc',
          'custom_typed_data',
          'node_server_info',
+         'discover',
          ]
 
     topics = {}
@@ -112,6 +113,7 @@ class Interface(object):
     CUSTOMPARAMSDOC   = 15
     CUSTOMTYPEDDATA   = 16
     NSINFO            = 17
+    DISCOVER          = 18
 
     """
     Polyglot Interface Class
@@ -256,7 +258,8 @@ class Interface(object):
                          'status', 'shortPoll', 'longPoll', 'delete',
                          'config', 'customdata', 'customparams', 'notices',
                          'getIsyInfo', 'getAll', 'setLogLevel',
-                         'customtypeddata', 'customtypedparams', 'getNsInfo']
+                         'customtypeddata', 'customtypedparams', 'getNsInfo',
+                         'discover']
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
             #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
@@ -619,6 +622,8 @@ class Interface(object):
             pub.publish(self.ISY, None, item)
         elif key == 'getNsInfo':
             pub.publish(self.NSINFO, None, item)
+        elif key == 'discover':
+            pub.publish(self.DISCOVER, None, None)
         elif key == 'getAll':
             """
             This is one of the first messages we get from Polyglot.
