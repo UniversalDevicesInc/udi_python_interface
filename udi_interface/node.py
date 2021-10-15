@@ -64,7 +64,12 @@ class Node(object):
     def setDriver(self, driver, value, report=True, force=False, uom=None):
         """ Update the driver's value and when report=True, update the ISY """
         changed = False
+
         drv = next((item for (item,d) in enumerate(self.drivers) if d['driver'] == driver), None)
+        if drv == None:
+            NLOGGER.error('setDriver: Invalid driver: {}'.format(driver))
+            return
+
         if uom != None and self.drivers[drv]['uom'] != uom:
             self.drivers[drv]['uom'] = uom
             changed = True

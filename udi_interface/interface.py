@@ -61,6 +61,7 @@ class pub(object):
          'config_done',
          'custom_params_doc',
          'custom_typed_data',
+         'node_server_info',
          ]
 
     topics = {}
@@ -110,6 +111,7 @@ class Interface(object):
     CONFIGDONE        = 14
     CUSTOMPARAMSDOC   = 15
     CUSTOMTYPEDDATA   = 16
+    NSINFO            = 17
 
     """
     Polyglot Interface Class
@@ -155,11 +157,11 @@ class Interface(object):
         self._mqttc.on_log = self._log
         self.useSecure = True
         self._nodes = {}
-        self.nodes = {}
+        self.nodes_internal = {}
         if self.pg3init['secure'] == 1:
             self.sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
             self.sslContext.check_hostname = False
-        self._mqttc.tls_set_context(self.sslContext)
+            self._mqttc.tls_set_context(self.sslContext)
         self.loop = None
         self.inQueue = queue.Queue()
         self.isyVersion = None
@@ -169,9 +171,13 @@ class Interface(object):
         Interface.__exists = True
         self.custom_params_docs_file_sent = False
         self.custom_params_pending_docs = ''
+        self._levelsList = []
 
         """ persistent data storage for Interface """
         self._ifaceData = Custom(self, 'idata')  # Interface data
+
+        """ persistent storage for Notices """
+        self.Notices = Custom(self, 'notices')
 
         try:
             self.network_interface = self.getNetworkInterface()
@@ -184,8 +190,12 @@ class Interface(object):
 
         # attempt to build a list of node server custom classes
         self._nodeClasses = {}
-        for c in classes:
-            self._nodeClasses[c.id] = c
+        if type(classes) is list:
+            for c in classes:
+                try:
+                    self._nodeClasses[c.id] = c
+                except:
+                    LOGGER.error('Invalid class in initial class list')
 
     def subscribe(self, topic, callback, address=None):
         pub.subscribe(topic, callback, address)
@@ -246,7 +256,7 @@ class Interface(object):
                          'status', 'shortPoll', 'longPoll', 'delete',
                          'config', 'customdata', 'customparams', 'notices',
                          'getIsyInfo', 'getAll', 'setLogLevel',
-                         'customtypeddata', 'customtypedparams']
+                         'customtypeddata', 'customtypedparams', 'getNsInfo']
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
             #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
@@ -433,10 +443,15 @@ class Interface(object):
             warnings.warn('payload not a dictionary')
             return False
 
+        timeout = 10
         while not self.subscribed:
-            # can we block here?
-            LOGGER.warning('MQTT Send waiting on connection.')
+            if timeout == 0:
+                LOGGER.error('MQTT Send timeout :: {}.'.format(messsage))
+                return
+
+            LOGGER.warning('MQTT Send waiting on connection :: {}'.format(message))
             time.sleep(3)
+            timeout -= 1
             
         try:
             validTypes = ['status', 'command', 'system', 'custom']
@@ -471,7 +486,7 @@ class Interface(object):
         list?
 
         self._nodes[address] = node properties from config
-        self.nodes[address] = a node object?
+        self.nodes_internal[address] = a node object?
                       - Added by addNode() or updateNode()
                       - addNode will copy driver values from _nodes and
                         replace the default values before sending to core
@@ -487,14 +502,17 @@ class Interface(object):
                 if the node is already in the main node list, use the values
                 from the database to update the node.
                 """
-                if node['address'] in self.nodes:
-                    n = self.nodes[node['address']]
+                if node['address'] in self.nodes_internal:
+                    n = self.nodes_internal[node['address']]
                     n.updateDrivers(node['drivers']) 
                     n.config = node
                     n.isPrimary = node['isPrimary']
                     n.timeAdded = node['timeAdded']
                     n.enabled = node['enabled']
                     n.private = node['private']
+
+        if 'logLevelList' in config:
+            self._levelsList = config['logLevelList']
 
         if 'logLevel' in config:
             self.currentLogLevel = config['logLevel'].upper()
@@ -505,9 +523,15 @@ class Interface(object):
                 NLOGGER.setLevel('DEBUG')
                 ILOGGER.setLevel('DEBUG')
                 self.currentLogLevel = 'DEBUG'
+            else:
+                LOGGER.setLevel(self.currentLogLevel)
+                CLOGGER.setLevel(self.currentLogLevel)
+                NLOGGER.setLevel(self.currentLogLevel)
+                ILOGGER.setLevel(self.currentLogLevel)
 
             GLOBAL_LOGGER.setLevel(self.currentLogLevel)
-            pub.publish(self.LOGLEVEL, None, self.currentLogLevel)
+            level = logging.getLevelName(self.currentLogLevel)
+            pub.publish(self.LOGLEVEL, None, { 'name': self.currentLogLevel, 'level': level }  )
 
         pub.publish(self.CONFIG, None, config)
 
@@ -589,9 +613,12 @@ class Interface(object):
             except ValueError as e:
                 value = item.get('value')
 
+            self.Notices.load(value)
             pub.publish(self.NOTICES, None, value)
         elif key == 'getIsyInfo':
             pub.publish(self.ISY, None, item)
+        elif key == 'getNsInfo':
+            pub.publish(self.NSINFO, None, item)
         elif key == 'getAll':
             """
             This is one of the first messages we get from Polyglot.
@@ -607,6 +634,7 @@ class Interface(object):
 
                     #LOGGER.error('GETALL -> {} {}'.format(item.get('key'), value))
                     if item.get('key') == 'notices':
+                        self.Notices.load(value)
                         pub.publish(self.NOTICES, None, value)
                     elif item.get('key') == 'customparams':
                         pub.publish(self.CUSTOMPARAMS, None, value)
@@ -625,9 +653,9 @@ class Interface(object):
             except ValueError as e:
                 LOGGER.error('Failure trying to load {} data'.format(item.get('key')))
         elif key == 'command':
-            if item['address'] in self.nodes:
+            if item['address'] in self.nodes_internal:
                 try:
-                    self.nodes[item['address']].runCmd(item)
+                    self.nodes_internal[item['address']].runCmd(item)
                 except (Exception) as err:
                     LOGGER.error('_parseInput: failed {}.runCmd({}) {}'.format(
                         item['address'], item['cmd'], err), exc_info=True)
@@ -642,14 +670,14 @@ class Interface(object):
         elif key == 'longPoll':
             pub.publish(self.POLL, None, 'longPoll')
         elif key == 'query':
-            if item['address'] in self.nodes:
-                self.nodes[item['address']].query()
+            if item['address'] in self.nodes_internal:
+                self.nodes_internal[item['address']].query()
             elif item['address'] == 'all':
                 # TODO: FIXME: This isn't right now
                 self.query()
         elif key == 'status':
-            if item['address'] in self.nodes:
-                self.nodes[item['address']].status()
+            if item['address'] in self.nodes_internal:
+                self.nodes_internal[item['address']].status()
             elif item['address'] == 'all':
                 # TODO: FIXME: This isn't right now
                 self.status()
@@ -676,7 +704,8 @@ class Interface(object):
                 NLOGGER.setLevel(self.currentLogLevel)
                 ILOGGER.setLevel(self.currentLogLevel)
 
-                pub.publish(self.LOGLEVEL, None, item['level'])
+                level = logging.getLevelName(self.currentLogLevel)
+                pub.publish(self.LOGLEVEL, None, { 'name': self.currentLogLevel, 'level': level }  )
 
             except (KeyError, ValueError) as err:
                 LOGGER.error('Failed to set {}: {}'.format(key, err), exc_info=True)
@@ -700,7 +729,7 @@ class Interface(object):
                 # Notify listeners that node has been added
                 pub.publish(self.ADDNODEDONE, None, result)
             #else:
-            #    del self.nodes[result.get('address')]
+            #    del self.nodes_internal[result.get('address')]
         except (KeyError, ValueError) as err:
             LOGGER.error('handleResult: {}'.format(err), exc_info=True)
 
@@ -723,6 +752,7 @@ class Interface(object):
         LOGGER.debug('Asking PG3 for config/getAll now')
         self.send({'config': {}}, 'system')
         self.send({'getAll': {}}, 'custom')
+        self.send({'getNsInfo': {}},'system')
 
     def isConnected(self):
         """ Tells you if this nodeserver and Polyglot are connected via MQTT """
@@ -748,7 +778,7 @@ class Interface(object):
         }
         self.send(message, 'command')
         self._nodes[node.address] = node
-        self.nodes[node.address] = node
+        self.nodes_internal[node.address] = node
 
         """
         This is too early to call the node's start function. At this point
@@ -767,15 +797,15 @@ class Interface(object):
 
         Is this an array or a dictionary keyed with address?
         """
-        return self.nodes
+        return self.nodes_internal
 
     def getNode(self, address):
         """
         Get Node by Address of existing nodes. 
         """
         try:
-            if address in self.nodes:
-                    return self.nodes[address]
+            if address in self.nodes_internal:
+                    return self.nodes_internal[address]
             return None
         except KeyError:
             LOGGER.error(
@@ -989,6 +1019,32 @@ class Interface(object):
         message = {'setLogList': {'levels': lvls}}
         LOGGER.debug('Sending message {}'.format(message))
         self.send(message, 'system')
+
+    def addLogLevel(self, name, lvl, str_name):
+        logging.addLevelName(lvl, name)
+
+        # we need the current list
+        lid = 0
+        for l in self._levelsList:
+            if l['id'] > lid:
+                lid = int(l['id'])
+
+        # Add new level to list
+        self._levelsList.append( {
+            'id': lid,
+            'name': str_name,
+            'value': name,
+            'level': lvl
+            })
+
+        # send list to PG3
+        message = {'setLogList': {'levels': self._levelsList}}
+        LOGGER.debug('Sending message {}'.format(message))
+        self.send(message, 'system')
+
+    def nodes(self):
+        for n in self.nodes_internal:
+            yield self.nodes_internal[n]
 
     def supports_feature(self, feature):
         LOGGER.warning('The supports_feature() function is deprecated.')
