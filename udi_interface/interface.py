@@ -635,7 +635,10 @@ class Interface(object):
                 if item.get('key') == 'customparamsdoc':
                     pub.publish(self.CUSTOMPARAMSDOC, None, item.get('value'))
                 else:
-                    value = json.loads(item.get('value'))
+                    try:
+                        value = json.loads(item.get('value'))
+                    except:
+                        value = item.get('value')
 
                     #LOGGER.error('GETALL -> {} {}'.format(item.get('key'), value))
                     if item.get('key') == 'notices':
