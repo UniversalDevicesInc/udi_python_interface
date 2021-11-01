@@ -348,6 +348,8 @@ is an internal name for the notice and the value is the notice text.
 
 `customdata` key / value pairs of node server specific data.
 
+`nsdata` developer defined data saved to NS store db and passed on to node server. 
+
 `customtypedparams`  A list of custom parameter definitions.  The UI uses this
 for more complex parameter specifications than the key/value pairs above. A
 parameter definition consist of the following:

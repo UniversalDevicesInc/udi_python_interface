@@ -259,7 +259,7 @@ class Interface(object):
                          'config', 'customdata', 'customparams', 'notices',
                          'getIsyInfo', 'getAll', 'setLogLevel',
                          'customtypeddata', 'customtypedparams', 'getNsInfo',
-                         'discover']
+                         'discover', 'nsdata']
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
             #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
@@ -601,6 +601,14 @@ class Interface(object):
                 value = item.get('value')
 
             pub.publish(self.CUSTOMPARAMS, None, value)
+        elif key == 'nsdata':
+            #LOGGER.debug('nsdata: {}'.format(item))
+            try:
+                value = json.loads(item)
+            except ValueError as e:
+                value = item
+
+            pub.publish(self.CUSTOMNS, None, key, value)
         elif key == 'customtypedparams':
             try:
                 value = json.loads(item)
