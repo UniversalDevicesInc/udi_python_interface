@@ -310,6 +310,8 @@ class Interface(object):
                     LOGGER.error('error {}'.format(parsed_msg[key]))
                 elif key == 'customparamsdoc':
                     LOGGER.info('customparamsdoc response')
+                elif key == 'setLogLevelList':
+                    LOGGER.info('setLogList response {}'.format(parsed_msg[key]))
                 else:
                     LOGGER.error(
                         'Invalid command received in message from PG3: \'{}\' {}'.format(key, parsed_msg[key]))
@@ -515,7 +517,7 @@ class Interface(object):
                     n.private = node['private']
 
         if 'logLevelList' in config:
-            self._levelsList = config['logLevelList']
+            self._levelsList = json.loads(config['logLevelList'])
 
         if 'logLevel' in config:
             self.currentLogLevel = config['logLevel'].upper()
@@ -1044,10 +1046,13 @@ class Interface(object):
         for l in self._levelsList:
             if l['id'] > lid:
                 lid = int(l['id'])
+            if l['value'] == name:
+                LOGGER.warn('Attempt to add log level that already exists: {}'.format(name))
+                return
 
         # Add new level to list
         self._levelsList.append( {
-            'id': lid,
+            'id': lid+1,
             'name': str_name,
             'value': name,
             'level': lvl
