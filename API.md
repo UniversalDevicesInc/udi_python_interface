@@ -223,7 +223,11 @@ start(), to initiate the MQTT connection and start communicating with Polyglot.
 
 stop(), to stop the MQTT connection.  This will be automatically called if Polyglot sends a stop command and the node server has not subscribed to the STOP event.  If the node server has subscribed to the STOP event, it is the node server's responsibility to call the interface.stop() method.
 
-ready(), to let the interface know that we are configured to handle events. This should be called near the end of the controller node initialization after all the event callbacks have been registerd.
+ready(), to let the interface know that we are configured to handle events. This should be called near the end of the controller node initialization after all the event callbacks have been registerd. 
+
+Calling other interface methods (other than subscribe) before calling ready() may have unintended side effects as the interface has not yet received any configuration information from PG3.  Internally, ready() triggers the interface to query PG3 for configuration data. 
+
+It is best to use event handlers to access configuration data as then you are assurred the interface has recieved and processed that data.
 
 isConnected(), which tells you if this NodeServer and Polyglot are connected via MQTT.
 
@@ -292,7 +296,11 @@ getLogLevel(), get the currently configured log level. This is the level that Po
 
 setLogLevel(level), send the specified level to Polyglot to store in its database. This level will then be sent back to the node server and set as the current log level.
 
-addLogLevel(name, level, string_name), Add a new log level to the logger and to the list displayed to the user.  'name' is the level name string (typically all upper case like DEBUG, WARNING, etc.) 'level' is the numeric value of new leel, and string_name is the string to display to the user in the log level selector.
+addLogLevel(name, level, string_name), Add a new log level to the logger and to the list displayed to the user.  'name' is the level name string (typically all upper case like DEBUG, WARNING, etc.) 'level' is the numeric value of new level, and string_name is the string to display to the user in the log level selector.
+
+NOTE that this modifies the node server log level list which is stored as part of the node server configuration in PG3.  Thus you should only attempt to add items to the list after the config data has been recieved from PG3.  The best place to do this would be in a CONFIG event handler.
+
+NOTE2 that there is currently no way to remove or modify an item on the list other than replacing the whole list. See setLogList() below.
 
 setLogList(list), Send the list of log levels for the frontend log level list selector. The 'list' is an array of {display_name:LOGLEVEL} objects.  The user will be presented with the 'display_name' and when selected, it will set the log level to LOGLEVEL.  LOGLEVEL must be one of the valid levels supported by the logger or added via the addLevelName method in the logger. (DEPRECATED)
 
