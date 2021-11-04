@@ -210,6 +210,26 @@ Example to get initial log level
        level_num = udi_interface.LOG_HANDLER.getLevelName(loglevel)
 ```
 
+Event handler prototypes
+  * CONFIG            def handler(config_data)
+  * START             def handler()
+  * STARTDONE         def handler(node_address)
+  * STOP              def handler()
+  * DELETE            def handler()
+  * ADDNODEDONE       def handler(node)
+  * CUSTOMDATA        def handler(customData)
+  * CUSTOMTYPEDDATA   def handler(customTypedData)
+  * CUSTOMPARAMS      def handler(customParams)
+  * CUSTOMTYPEDPARAMS def handler(customTypedParams)
+  * CUSTOMNS          def handler(key, customData)
+  * NOTICES           def handler(notices)
+  * POLL              def handler(poll_type)
+  * LOGLEVEL          def handler(currentLevel)
+  * ISY               def handler(isy_info)
+  * NSINFO            def handler(node_servers_info)
+  * CONFIGDONE        def handler()
+  * DISCOVER          def handler()
+ * 
 
 ##### The Interface class variables
 
