@@ -570,7 +570,7 @@ class Interface(object):
                     for item in input[key]:
                         self._handleInput(key, item)
                     if key == 'getAll':
-                        pub.publish(self.CONFIGDONE, None, None)
+                        pub.publish(self.CONFIGDONE, None)
                 else:
                     self._handleInput(key, input[key])
             self.inQueue.task_done()
@@ -633,7 +633,7 @@ class Interface(object):
         elif key == 'getNsInfo':
             pub.publish(self.NSINFO, None, item)
         elif key == 'discover':
-            pub.publish(self.DISCOVER, None, None)
+            pub.publish(self.DISCOVER, None)
         elif key == 'getAll':
             """
             This is one of the first messages we get from Polyglot.
@@ -1041,22 +1041,27 @@ class Interface(object):
     def addLogLevel(self, name, lvl, str_name):
         logging.addLevelName(lvl, name)
 
+        insert = True
         # we need the current list
         lid = 0
         for l in self._levelsList:
             if l['id'] > lid:
                 lid = int(l['id'])
             if l['value'] == name:
-                LOGGER.warn('Attempt to add log level that already exists: {}'.format(name))
-                return
+                l['name'] = str_name
+                insert = False
 
-        # Add new level to list
-        self._levelsList.append( {
-            'id': lid+1,
-            'name': str_name,
-            'value': name,
-            'level': lvl
-            })
+        if insert:
+            # Add new level to list
+            self._levelsList.append( {
+                'id': lid+1,
+                'name': str_name,
+                'value': name,
+                'level': lvl
+                })
+
+            # sort the list by level?
+            self._levelsList = sorted(self._levelsList, key=lambda k: k['level'])
 
         # send list to PG3
         message = {'setLogList': {'levels': self._levelsList}}
