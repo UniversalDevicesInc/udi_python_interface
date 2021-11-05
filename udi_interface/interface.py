@@ -519,6 +519,11 @@ class Interface(object):
         if 'logLevelList' in config:
             self._levelsList = json.loads(config['logLevelList'])
 
+            # Need to add any non-standard levels back into the logger.
+            for l in self._levelsList:
+                if l['level'] not in ['DEBUG', 'INFO', 'WARNING', 'ERROR', 'CRITICAL']:
+                    logging.addLevelName(l['level'], l['value'])
+
         if 'logLevel' in config:
             self.currentLogLevel = config['logLevel'].upper()
             LOGGER.debug('Setting log level to {}'.format(self.currentLogLevel))
