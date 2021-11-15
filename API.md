@@ -252,7 +252,9 @@ It is best to use event handlers to access configuration data as then you are as
 isConnected(), which tells you if this NodeServer and Polyglot are connected via MQTT.
 
 addNode(node), Adds a new node to Polyglot. You fist need to instantiate a
-node using your custom class, which you then pass to addNode.  Notes:
+node using your custom class, which you then pass to addNode. Return value
+is the node passed in.
+Notes:
 1. Only Node class common information is stored in the database, not your
  custom class.  
 2. When the interface gets the node information from the Polyglot DB, it

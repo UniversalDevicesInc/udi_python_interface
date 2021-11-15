@@ -809,6 +809,8 @@ class Interface(object):
         the start function typically needs that info.
         """
 
+        return node
+
     def getConfig(self):
         """ Returns a copy of the last config received. """
         return self.config
