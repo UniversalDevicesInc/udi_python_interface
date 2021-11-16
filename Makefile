@@ -16,6 +16,7 @@ install_dependancies:
 	python3 -m pip install --upgrade pip setuptools wheel twine
 
 build:
+	rm dist/*
 	python3 setup.py sdist
 	python3 setup.py bdist_wheel
 
