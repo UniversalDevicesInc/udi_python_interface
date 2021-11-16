@@ -66,6 +66,7 @@ class pub(object):
          ]
 
     topics = {}
+    cfg_threads = []
 
     @staticmethod
     def subscribe(topic, callback, address):
@@ -85,10 +86,43 @@ class pub(object):
                     Thread(target=item[0], args=[*argv]).start()
 
     @staticmethod
+    def publish_nt(topic, address, *argv):
+        if pub.topic_list[topic] in pub.topics:
+            for item in pub.topics[pub.topic_list[topic]]:
+                if item[1] == address:
+                    t = Thread(target=item[0], args=[*argv])
+                    pub.cfg_threads.append(t)
+                    t.start()
+
+    @staticmethod
+    def publish_wait(topic, address, *argv):
+        if pub.topic_list[topic] in pub.topics:
+            for item in pub.topics[pub.topic_list[topic]]:
+                if item[1] == address:
+                    Thread(target=pub.waitForFinish, args=[item[0], *argv]).start()
+
+
+    @staticmethod
     def hasSubscriber(topic):
         if pub.topic_list[topic] in pub.topics:
             return True
         return False
+
+    @staticmethod
+    def waitForFinish(callback, *argv):
+        while True:
+            finished = True
+            for t in pub.cfg_threads:
+                if t.is_alive():
+                    finished = False
+            if finished:
+                break
+            time.sleep(.1)
+
+        pub.cfg_threads = []
+        Thread(target=callback, args=[*argv]).start()
+
+
 
 
 class Interface(object):
@@ -575,7 +609,7 @@ class Interface(object):
                     for item in input[key]:
                         self._handleInput(key, item)
                     if key == 'getAll':
-                        pub.publish(self.CONFIGDONE, None)
+                        pub.publish_wait(self.CONFIGDONE, None)
                 else:
                     self._handleInput(key, input[key])
             self.inQueue.task_done()
@@ -658,21 +692,21 @@ class Interface(object):
                     #LOGGER.error('GETALL -> {} {}'.format(item.get('key'), value))
                     if item.get('key') == 'notices':
                         self.Notices.load(value)
-                        pub.publish(self.NOTICES, None, value)
+                        pub.publish_nt(self.NOTICES, None, value)
                     elif item.get('key') == 'customparams':
-                        pub.publish(self.CUSTOMPARAMS, None, value)
+                        pub.publish_nt(self.CUSTOMPARAMS, None, value)
                     elif item.get('key') == 'customtypedparams':
-                        pub.publish(self.CUSTOMTYPEDPARAMS, None, value)
+                        pub.publish_nt(self.CUSTOMTYPEDPARAMS, None, value)
                     elif item.get('key') == 'customdata':
-                        pub.publish(self.CUSTOMDATA, None, value)
+                        pub.publish_nt(self.CUSTOMDATA, None, value)
                     elif item.get('key') == 'customtypeddata':
-                        pub.publish(self.CUSTOMTYPEDDATA, None, value)
+                        pub.publish_nt(self.CUSTOMTYPEDDATA, None, value)
                     elif item.get('key') == 'idata':
                         self._ifaceData.load(value)
                     else:
                         # node server custom key
                         LOGGER.debug('Key {} should be passed to node server.'.format(item.get('key')))
-                        pub.publish(self.CUSTOMNS, None, item.get('key'), value)
+                        pub.publish_nt(self.CUSTOMNS, None, item.get('key'), value)
             except ValueError as e:
                 LOGGER.error('Failure trying to load {} data'.format(item.get('key')))
         elif key == 'command':
