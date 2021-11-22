@@ -338,6 +338,21 @@ class Interface(object):
 
                     else:
                         LOGGER.error('set input was not a list')
+                elif key == 'custom':
+                    # custom response, parse and put standard keys in queue
+                    for custom_key in parsed_msg[key]:
+                        if custom_key in inputCmds:
+                            LOGGER.debug('QUEUING incoming message {}'.format(custom_key))
+                            self.inQueue.put(parsed_msg[key])
+                        else:
+                            LOGGER.info('custom data response {}'.format(parsed_msg[key]))
+                            '''
+                            This should be the response to saving user defined
+                            custom data.  Since the node server just wants
+                            this saved, it doesn't make sense to publish this
+                            as an event.  But we could if there's a valid 
+                            reason to do so.
+                            '''
                 elif key == 'installprofile':
                     LOGGER.info('Profile installation finished')
                 elif key == 'error':
