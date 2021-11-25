@@ -832,7 +832,7 @@ class Interface(object):
         """ Tells you if this nodeserver and Polyglot are connected via MQTT """
         return self.connected
 
-    def addNode(self, node):
+    def addNode(self, node, conn_status=None):
         """
         Add a node to the NodeServer
 
@@ -853,6 +853,9 @@ class Interface(object):
         self.send(message, 'command')
         self._nodes[node.address] = node
         self.nodes_internal[node.address] = node
+
+        if conn_status is not None:
+            self.setController(node.address, conn_status)
 
         """
         This is too early to call the node's start function. At this point
