@@ -293,7 +293,7 @@ class Interface(object):
                          'config', 'customdata', 'customparams', 'notices',
                          'getIsyInfo', 'getAll', 'setLogLevel',
                          'customtypeddata', 'customtypedparams', 'getNsInfo',
-                         'discover', 'nsdata']
+                         'discover', 'nsdata', 'setController']
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
             #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
@@ -781,6 +781,8 @@ class Interface(object):
 
             except (KeyError, ValueError) as err:
                 LOGGER.error('Failed to set {}: {}'.format(key, err), exc_info=True)
+        elif key == 'setController':
+            LOGGER.debug('connection status node/driver update')
 
     def _handleResult(self, result):
         try:
@@ -830,7 +832,7 @@ class Interface(object):
         """ Tells you if this nodeserver and Polyglot are connected via MQTT """
         return self.connected
 
-    def addNode(self, node):
+    def addNode(self, node, conn_status=None):
         """
         Add a node to the NodeServer
 
@@ -851,6 +853,9 @@ class Interface(object):
         self.send(message, 'command')
         self._nodes[node.address] = node
         self.nodes_internal[node.address] = node
+
+        if conn_status is not None:
+            self.setController(node.address, conn_status)
 
         """
         This is too early to call the node's start function. At this point
@@ -1122,6 +1127,13 @@ class Interface(object):
         # send list to PG3
         message = {'setLogList': {'levels': self._levelsList}}
         LOGGER.debug('Sending message {}'.format(message))
+        self.send(message, 'system')
+
+    def setController(self, node_addr, driver):
+        LOGGER.info('Using node "{}", driver "{}" for connection status.'.format(node_addr, driver))
+        message = {
+                'setController': { 'node': node_addr, 'driver': driver }
+                }
         self.send(message, 'system')
 
     def nodes(self):

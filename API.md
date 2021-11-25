@@ -251,9 +251,12 @@ It is best to use event handlers to access configuration data as then you are as
 
 isConnected(), which tells you if this NodeServer and Polyglot are connected via MQTT.
 
-addNode(node), Adds a new node to Polyglot. You fist need to instantiate a
+addNode(node, conn_status = None), Adds a new node to Polyglot. You fist need to instantiate a
 node using your custom class, which you then pass to addNode. Return value
 is the node passed in.
+
+If conn_status is set to a driver string, this node and that driver specified will be used by PG3 to represent the connection status (0 = disconnected, 1 = connected, 2 = failed).  By default, conn_status is None.
+
 Notes:
 1. Only Node class common information is stored in the database, not your
  custom class.  
@@ -336,6 +339,8 @@ Currently you have to pass all values including default ones to add yours.
             {"Error":"ERROR"},
             ])
 ```
+
+setController(node\_address, driver), Tell PG3 what node and driver it should update with the connection status.  If not set, connection status will only be visible in the UI.
 
 runForever(), run the main message handling loop.  This waits for messages from polyglot and appropriately notifies the node server.
 
