@@ -337,6 +337,8 @@ Currently you have to pass all values including default ones to add yours.
             ])
 ```
 
+setController(node\_address, driver), Tell PG3 what node and driver it should update with the connection status.  If not set, connection status will only be visible in the UI.
+
 runForever(), run the main message handling loop.  This waits for messages from polyglot and appropriately notifies the node server.
 
 ### The Custom class
