@@ -26,12 +26,10 @@ template for an example. Please refer to the [ISY Version 5 API](https://wiki.un
 The polyglot interface module has 2 main classes you need to use to interact with Polyglot.
 
 ### The Node class
-The Node class represents a generic ISY node. Your custom nodes will have to inherit from this class, and they should
-match the status and the controls that you have created in your nodedefs. Given that your Nodeserver may be used for
-Polyglot V3 or Polyglot cloud, the class has to be dynamically created to that your class extends the correct Node class
-(Polyglot V3 or PGC).
+The Node class represents a generic ISY node. Your custom nodes will have to inherit from this class, and they should match the status and the controls that you have created in your nodedefs. Given that your Nodeserver may be used for Polyglot V3 or Polyglot cloud, the class has to be dynamically created to that your class extends the correct Node class(Polyglot V3 or PGC).
 
 The recommended approach is to create one Python module per Nodedefs, with a single function that returns the class. 
+
 The class returned inherits from Polyglot.Node, Polyglot being the Polyglot module passed from your Nodeserver (Polyglot V3 or PGC).
 
 ```python
@@ -76,47 +74,46 @@ class MyNode(udi_interface.Node):
 		setDriver('ST', 0)
 ```
 
-##### The Node class has these standard properties:
+#### The Node class has these standard properties:  
 
-`self.id` (This is the Nodedef ID)  
-`self.udi_interface` (Gives access to the Polyglot interface)  
-`self.primary` (Primary address)  
-`self.address` (Node address)  
-`self.name` (Node name)  
-`self.timeAdded` (Time added)  
-`self.enabled` (Node is enabled?)  
-`self.added` (Node is added to ISY?)  
-`self.commands` (List of commands)  
-`self.drivers` (List of drivers)  
+
+* __self.id__ (This is the Nodedef ID)  
+* __self.udi_interface__ (Gives access to the Polyglot interface)  
+* __self.primary__ (Primary address)  
+* __self.address__ (Node address)  
+* __self.name__ (Node name)  
+* __self.timeAdded__ (Time added)  
+* __self.enabled__ (Node is enabled?)  
+* __self.added__ (Node is added to ISY?)  
+* __self.commands__ (List of commands)  
+* __self.drivers__ (List of drivers)  
 
 The list of commands in your custom node need to map to a function which is executed when the command command is triggered.
 
 The list of drivers defines the node statuses, the uom, and contains the value.
 
 
-##### The Node class has these standard methods:
+#### The Node class has these standard methods:
 
-`self.getDriver(driver)` to get the driver value.  
-`self.setDriver(driver, value, report=true, forceReport=false, uom=null)` to set a driver to a value (example set ST to 100).  
-`self.reportDriver(driver, forceReport)` to send existing driver value to ISY.  
-`self.reportDrivers()` to send existing driver values to ISY.  
-`self.query()` which is called when we get a query request (Override this to fetch live data).  
-`self.status()` which is called when we get a status request for this node.  
-`self.delNode()` which will remove the node from Polyglot and the ISY.  
+* __self.getDriver(driver)__ to get the driver value.  
+* __self.setDriver(driver, value, report=true, forceReport=false, uom=null)__ to set a driver to a value (example set ST to 100).  
+* __self.reportDriver(driver, forceReport)__ to send existing driver value to ISY.  
+* __self.reportDrivers()__ to send existing driver values to ISY.  
+* __self.query()__ which is called when we get a query request (Override this to fetch live data).  
+* __self.status()__ which is called when we get a status request for this node.  
+* __self.delNode()__ which will remove the node from Polyglot and the ISY.  
 
-#### The controller node
+### The controller node
 
-Normally, your NodeServer should have a controller node, in addition to your custom nodes. The controller node is
-a regular ISY node which holds the status of your NodeServer (Is it active or not?), and can also provide commands
-to interact with the NodeServer from the admin console or an ISY program.
+Normally, your NodeServer should have a controller node, in addition to your custom nodes. The controller node is a regular ISY node which holds the status of your NodeServer (Is it active or not?), and can also provide commands to interact with the NodeServer from the admin console or an ISY program.
 
 Please see the template for a complete example of a custom node and a controller node.
 
-### The Interface class
+## The Interface class
 The Interface class is a singleton used to interact with Polyglot-v3 through MQTT.
 
 You first need to instantiate the interface by passing an array of node definitions that you have created.
-Once instantiated, you can use events triggered by the interface such as `config`, `poll` or `stop`.
+Once instantiated, you can use events triggered by the interface such as __config__, __poll__ or __stop__.
 
 ```python
 import udi_interface
@@ -140,14 +137,11 @@ if __name__ == "__main__":
 	except (KeyboardInterrupt, SystemExit):
 		sys.exit(0)
 ```
-##### The Interface class events
+#### The Interface class events
 
-The interface class implements a subscription / publish interface that
-node servers can use to subscribe to various events.  To subscribe to
-an event, the node server will call the subscribe method with the event_id,
-the node server function to call into and optionally and node address:
+The interface class implements a subscription / publish interface that node servers can use to subscribe to various events.  To subscribe to an event, the node server will call the subscribe method with the event_id, the node server function to call into and optionally and node address:
 
-`subscribe(event_id, callback, [address])` 
+__subscribe(event_id, callback, [address])__ 
 
 
 The following event_id's are defined:
@@ -170,10 +164,8 @@ The following event_id's are defined:
   * CONFIGDONE        - Subscribe to initial configuration data sent event
   * DISCOVER          - Subscribe to user initiated device discovery event  
 
-The data events will send the specific type of data, when that data
-changes in PG3.  For example, when the user changes a custom parameter,
-the CUSTOMPARAMS event will be published with the current (changed) 
-custom parameter data.
+
+The data events will send the specific type of data, when that data changes in PG3.  For example, when the user changes a custom parameter, the CUSTOMPARAMS event will be published with the current (changed) custom parameter data.
 
 The 'done' events will be published when the specific action has completed.
 For example, STARTDONE will be published, when the start callback function
@@ -198,47 +190,47 @@ Example to get initial log level
 
 
 Event handler prototypes:
-
-* CONFIG            def handler(config_data)
-* START             def handler()
-* STARTDONE         def handler(node_address)
-* STOP              def handler()
-* DELETE            def handler()
-* ADDNODEDONE       def handler(node)
-* CUSTOMDATA        def handler(customData)
-* CUSTOMTYPEDDATA   def handler(customTypedData)
-* CUSTOMPARAMS      def handler(customParams)
-* CUSTOMTYPEDPARAMS def handler(customTypedParams)
-* CUSTOMNS          def handler(key, customData)
-* NOTICES           def handler(notices)
-* POLL              def handler(poll_type)
-* LOGLEVEL          def handler(currentLevel)
-* ISY               def handler(isy_info)
-* NSINFO            def handler(node_servers_info)
-* CONFIGDONE        def handler()
-* DISCOVER          def handler()
-
-##### The Interface class variables
+```
+ CONFIG            def handler(config_data)
+ START             def handler()
+ STARTDONE         def handler(node_address)
+ STOP              def handler()
+ DELETE            def handler()
+ ADDNODEDONE       def handler(node)
+ CUSTOMDATA        def handler(customData)
+ CUSTOMTYPEDDATA   def handler(customTypedData)
+ CUSTOMPARAMS      def handler(customParams)
+ CUSTOMTYPEDPARAMS def handler(customTypedParams)
+ CUSTOMNS          def handler(key, customData)
+ NOTICES           def handler(notices)
+ POLL              def handler(poll_type)
+ LOGLEVEL          def handler(currentLevel)
+ ISY               def handler(isy_info)
+ NSINFO            def handler(node_servers_info)
+ CONFIGDONE        def handler()
+ DISCOVER          def handler()
+```
+#### The Interface class variables
 
 Notices, a global list of all active notices for the node server. This is an
 instance of the Custom class so you can add, delete or clear entries using
 the Custom class API.
 
-##### The Interface class methods
+#### The Interface class methods
 
-`start()`, to initiate the MQTT connection and start communicating with Polyglot.
+__start()__, to initiate the MQTT connection and start communicating with Polyglot.
 
-`stop()`, to stop the MQTT connection.  This will be automatically called if Polyglot sends a stop command and the node server has not subscribed to the STOP event.  If the node server has subscribed to the STOP event, it is the node server's responsibility to call the interface.stop() method.
+__stop()__, to stop the MQTT connection.  This will be automatically called if Polyglot sends a stop command and the node server has not subscribed to the STOP event.  If the node server has subscribed to the STOP event, it is the node server's responsibility to call the interface.stop() method.
 
-`ready()`, to let the interface know that we are configured to handle events. This should be called near the end of the controller node initialization after all the event callbacks have been registerd. 
+__ready()__, to let the interface know that we are configured to handle events. This should be called near the end of the controller node initialization after all the event callbacks have been registerd. 
 
-Calling other interface methods (other than `subscribe`) before calling ready() may have unintended side effects as the interface has not yet received any configuration information from PG3.  Internally, `ready()` triggers the interface to query PG3 for configuration data. 
+Calling other interface methods (other than __subscribe__) before calling __ready()__ may have unintended side effects as the interface has not yet received any configuration information from PG3.  Internally, __ready()__ triggers the interface to query PG3 for configuration data. 
 
 It is best to use event handlers to access configuration data as then you are assurred the interface has recieved and processed that data.
 
-`isConnected()` which tells you if this NodeServer and Polyglot are connected via MQTT.
+__isConnected()__ which tells you if this NodeServer and Polyglot are connected via MQTT.
 
-`addNode(node)` Adds a new node to Polyglot. You fist need to instantiate a
+__addNode(node)__ Adds a new node to Polyglot. You fist need to instantiate a
 node using your custom class, which you then pass to addNode. Return value
 is the node passed in.  
 
@@ -251,21 +243,21 @@ Notes:
 2. When the interface gets the node information from the Polyglot DB, it
  creates a generic node and adds it to the node list. This way there is
  a list of nodes available in the onConfig handler. However, you should
- still call `addNode()` for each node to replace the generic node object
+ still call __addNode()__ for each node to replace the generic node object
  with your custom node class object.
 ```
 
-`getConfig()` Returns a copy of the last config received.
+__getConfig()__ Returns a copy of the last config received.
 
-`getNodes()` Returns your list of nodes. The interface will attempt to wrap
+__getNodes()__ Returns your list of nodes. The interface will attempt to wrap
 the list of nodes from Polyglot with your custom classes. But this can fail
 if your custom class needs additional parameters when creating the class
 object. Your node server should call addNode() to make sure the objects on
 this list are your custom class objects.
 
-`getNode(address)` Returns a single node.
+__getNode(address)__ Returns a single node.
 
-`nodes()` is a generator that allows you to easily iterate over the list of nodes. 
+__nodes()__ is a generator that allows you to easily iterate over the list of nodes. 
 
 ```python
 for n in poly.nodes():
@@ -273,11 +265,11 @@ for n in poly.nodes():
         n.query()
 ```
 
-`delNode(node)` Allows you to delete the node specified. You need to pass the actual node. Alternatively, you can use `delNode()` directly on the node itself, which has the same effect.
+__delNode(node)__ Allows you to delete the node specified. You need to pass the actual node. Alternatively, you can use delNode() directly on the node itself, which has the same effect.
 
-`updateProfile()`, Sends the latest profile to ISY from the profile folder.
+__updateProfile()__, Sends the latest profile to ISY from the profile folder.
 
-`setCustomParamsDoc(md_doc)`, allows you to set the markdown help file for your params. 
+__setCustomParamsDoc(md\_doc)__, allows you to set the markdown help file for your params. 
 
 Here's an example using a markdown file:
 
@@ -293,33 +285,16 @@ if os.path.isfile(configurationHelp):
 ```
 
 
-`send()`, send a message to Polyglot directly.
-
-`restart()`, allows you to self restart the NodeServer.
-
-`stop()`, drop the connection with Polyglot and send a notice to the nodeserver to stop running.
-
-`updateProfile()`, send the current profile files to the ISY.
-
-`checkProfile()`, compare the profile version in server.json with the installed version and update the ISY if the installed version is behind.
-
-`getNetworkInterface()`, get the network interface the node server is running on.
-
-`getLogLevel()`, get the currently configured log level. This is the level that Polyglot has saved in it's database.  The node server may have changed this directly without notifying Polyglot.
-
-`setLogLevel(level)`, send the specified level to Polyglot to store in its database. This level will then be sent back to the node server and set as the current log level.
-
-`addLogLevel(name, level, string_name)`, Add a new log level to the logger and to the list displayed to the user.  'name' is the level name string (typically all upper case like DEBUG, WARNING, etc.) 'level' is the numeric value of new level, and string_name is the string to display to the user in the log level selector.
-
-
-**NOTE** that this modifies the node server log level list which is stored as part of the node server configuration in PG3.  Thus you should only attempt to add items to the list after the config data has been recieved from PG3.  The best place to do this would be in a CONFIG event handler.
-
-**NOTE2** that there is currently no way to remove or modify an item on the list other than replacing the whole list. See `setLogList()` below.
-
-
-`setLogList(list)`, Send the list of log levels for the frontend log level list selector. The 'list' is an array of `{display_name:LOGLEVEL}` objects.  The user will be presented with the 'display_name' and when selected, it will set the log level to LOGLEVEL.  LOGLEVEL must be one of the valid levels supported by the logger or added via the addLevelName method in the logger. (DEPRECATED)
-
-Currently you have to pass all values including default ones to add yours:
+* __send()__ send a message to Polyglot directly.
+* __restart()__ allows you to self restart the NodeServer.
+* __stop()__ drop the connection with Polyglot and send a notice to the nodeserver to stop running.
+* __updateProfile()__ send the current profile files to the ISY.
+* __checkProfile()__ compare the profile version in server.json with the installed version and update the ISY if the installed version is behind.
+* __getNetworkInterface()__ get the network interface the node server is running on.
+* __getLogLevel()__ get the currently configured log level. This is the level that Polyglot has saved in it's database.  The node server may have changed this directly without notifying Polyglot.
+* __setLogLevel__(level) send the specified level to Polyglot to store in its database. This level will then be sent back to the node server and set as the current log level.
+* __addLogLevel__(name, level, string\_name), Add a new log level to the logger and to the list displayed to the user.  'name' is the level name string (typically all upper case like DEBUG, WARNING, etc.) 'level' is the numeric value of new level, and string_name is the string to display to the user in the log level selector.  <BR> **NOTE** that this modifies the node server log level list which is stored as part of the node server configuration in PG3.  Thus you should only attempt to add items to the list after the config data has been recieved from PG3.  The best place to do this would be in a CONFIG event handler.  <BR>**NOTE2** that there is currently no way to remove or modify an item on the list other than replacing the whole list. See __setLogList()__ below.
+* __setLogList(list)__ Send the list of log levels for the frontend log level list selector. The 'list' is an array of __{display_name:LOGLEVEL}__ objects.  The user will be presented with the 'display_name' and when selected, it will set the log level to LOGLEVEL.  LOGLEVEL must be one of the valid levels supported by the logger or added via the addLevelName method in the logger. (DEPRECATED) <BR>Currently you have to pass all values including default ones to add yours:
  
 ```python
         poly.setLogList([
@@ -331,55 +306,49 @@ Currently you have to pass all values including default ones to add yours:
             ])
 ```
 
-`setController(node_address, driver)`, Tell PG3 what node and driver it should update with the connection status.  If not set, connection status will only be visible in the UI.
-
-`runForever()`, run the main message handling loop.  This waits for messages from polyglot and appropriately notifies the node server.
+* __setController(node_address, driver)__, Tell PG3 what node and driver it should update with the connection status.  If not set, connection status will only be visible in the UI.
+* __runForever()__, run the main message handling loop.  This waits for messages from polyglot and appropriately notifies the node server.
 
 ### The Custom class
 
 The Custom class is used to create persistent data storage containers. It implements a data type similar to a dict but with enhancements. It has the following API:
 
-`Custom.key = value`     - add a new key/value pair.  
-`Custom[key] = value `   - add a new key/value pair.  `key` can be a variable.  
-`Custom.load(data, save)`- insert data into the container. 'data' should be a dict of key/value pairs.  If save is true, data is sent to Polyglot.  
-`Custom.delete(key)`     - delete the value associated with `key`.  
-`Custom.clear()`         - delete all key/value pairs.  
-`Custom.keys()`          - return a list of keys.  
-`Custom.values()`        - return a list of values.  
-`Custom.isChanged(key)`  - true if the value for key was changed during load().  
-`Custom.isNew(key)`      - true if the key/value was added during load().  
-`Custom.dump()`          - return the raw dict, for debugging.  
+
+* __Custom.key = value__     - add a new key/value pair.  
+* __Custom[key] = value__  - add a new key/value pair.  __key__ can be a variable.  
+* __Custom.load(data, save)__- insert data into the container. 'data' should be a dict of key/value pairs.  If save is true, data is sent to Polyglot.  
+* __Custom.delete(key)__     - delete the value associated with __key__.  
+* __Custom.clear()__         - delete all key/value pairs.  
+* __Custom.keys()__          - return a list of keys.  
+* __Custom.values()__        - return a list of values.  
+* __Custom.isChanged(key)__  - true if the value for key was changed during load().  
+* __Custom.isNew(key)__      - true if the key/value was added during load().  
+* __Custom.dump()__          - return the raw dict, for debugging.  
 
 There are a few pre-defined storage containes that correspond roughly to
 the various config structures of PG2:
 
-`customparams`: key / value pairs that represent the custom parameters presented to the user via the UI. These can also be set to default values in the server.json file.  Sent to the node server via the CUSTOMPARAMS event when the node server first starts and whenever the user modifies them.
-
-`notices`: Holds the notices currently being displayed to the user. The key
+* __customparams__: key / value pairs that represent the custom parameters presented to the user via the UI. These can also be set to default values in the server.json file.  Sent to the node server via the CUSTOMPARAMS event when the node server first starts and whenever the user modifies them.
+* __notices__: Holds the notices currently being displayed to the user. The key
 is an internal name for the notice and the value is the notice text.
-
-`customdata`: key / value pairs of node server specific data.
-
-`nsdata`: developer defined data saved to NS store db and passed on to node server. 
-
-`customtypedparams`:  A list of custom parameter definitions.  The UI uses this
-for more complex parameter specifications than the key/value pairs above. A
+* __customdata__: key / value pairs of node server specific data.
+* __nsdata__: developer defined data saved to NS store db and passed on to node server. 
+* __customtypedparams__:  A list of custom parameter definitions.  The UI uses this for more complex parameter specifications than the key/value pairs above. A
 parameter definition consist of the following:
 
-* `name` - used as a key when data is sent from UI.
-* `title` - displayed in UI
-* `defaultValue` - optional
-* `type` - optional, can be 'NUMBER', 'STRING' or 'BOOLEAN'. Defaults to 'STRING'
-* `desc` - optional, shown in tooltip in UI
-* `isRequired` - optional, true/false
-* `isList` - optional, true/false, if set this will be treated as list of
+* __name__ - used as a key when data is sent from UI.
+* __title__ - displayed in UI
+* __defaultValue__ - optional
+* __type__ - optional, can be 'NUMBER', 'STRING' or 'BOOLEAN'. Defaults to 'STRING'
+* __desc__ - optional, shown in tooltip in UI
+* __isRequired__ - optional, true/false
+* __isList__ - optional, true/false, if set this will be treated as list of
 values or objects by UI
-* `params` - optional, can contain a list of objects.
+* __params__ - optional, can contain a list of objects.
  If present, then this (parent) is treated as object / list of objects by UI, otherwise, it's treated as a single / list of single values.
+* __customtypeddata__ the user entered data for a custom typed parameter configuration. An updated version is sent via the CUSTOMTYPEDDATA event  whenever the user modifies the parameters in the UI.
 
-`customtypeddata` the user entered data for a custom typed parameter configuration. An updated version is sent via the CUSTOMTYPEDDATA event  whenever the user modifies the parameters in the UI.
-
-Here's an example (example needs improvement):
+Here's an example (example needs improvement):  
 
 ```python
 polyglot.subscribe(polyglot.CUSTOMTYPEDDATA, self.parameterHandler)
@@ -409,8 +378,8 @@ create an ISY class object in your node server, the class will take care
 of authenticating and connecting to the ISY for you.  The class has two
 methods available:
 
-`ISY.cmd('rest command')`  Send a rest command to the ISY and get a response.  
-`ISY.pyisy()`              Create a `pyisy` instance that connects to the ISY
+* __ISY.cmd(rest\_command)__  Send a rest command to the ISY and get a response.  
+* __ISY.pyisy()__             Create a __pyisy__ instance that connects to the ISY
 
 **Examples:**
 
@@ -464,10 +433,10 @@ NodesServer.
 LOGGER = udi_interface.LOGGER
 LOGGER = getlogger('myModule')
 
-LOGGER.debug('Debugging');
-LOGGER.info('Info with more informations: %s', myInformation);
-LOGGER.warn('Warning with perhaps an object logged: %o', myObject);
-LOGGER.error('Error...');
+LOGGER.debug('Debugging')
+LOGGER.info('Info with more informations: %s', myInformation)
+LOGGER.warn('Warning with perhaps an object logged: %o', myObject)
+LOGGER.error('Error...')
 
 """
  Logging is controlled by the user selecting a log level using the 
@@ -487,12 +456,13 @@ LOGGER.setLevel(10)  # set logging level to debug
 ```
 
 The interface module loggers:    
-    `udi_interface.interface.LOGGER`  
-    `udi_interface.node.NLOGGER`  
-    `udi_interface.custom.CLOGGER`  
-    `udi_interface.isy.ILOGGER`
 
-The logs are located in `<home>/.polyglot/nodeservers/<your node server>/logs/debug.log`
+* __udi_interface.interface.LOGGER__  
+* __udi_interface.node.NLOGGER__  
+* __udi_interface.custom.CLOGGER__  
+* __udi_interface.isy.ILOGGER__
+
+The logs are located in __<home>/.polyglot/nodeservers/<your node server>/logs/debug.log__
 
 To watch your NodeServer logs:  
 ```
