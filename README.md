@@ -1,4 +1,4 @@
-![Test And Publish](https://github.com/UniversalDevicesInc/udi-python-interface/workflows/Publish%20PyPI%20and%20TestPyPI/badge.svg)
+![Test And Publish](https://github.com/UniversalDevicesInc/udi-python-interface/workflows/Publish%20PyPI%20and%20TestPyPI/badge.svg "Test and Publish")
 
 # UDI Python Interface Module for Polyglot version 3
 
@@ -42,9 +42,4 @@ From there just read the code itself, it is fully explained step by step.
 
 By default when the Polyglot Python Interface is started up the logging is in WARNING mode. If you want to change the level set logLevel: <level> in your server.json file.  Valid levels are:
 
-CRITICAL
-ERROR
-WARNING
-INFO
-DEBUG
-
+`CRITICAL` `ERROR` `WARNING` `INFO` `DEBUG`
