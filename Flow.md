@@ -48,7 +48,7 @@ To tell the interface object that it is OK to start sending data, call the __rea
  * A message with the active notices data. this will cause the interface to publish a `NOTICES` event with that data
  * A message with the info on all installed node servers. This will cause the interface to publish a `NSINFO` event with that data
 
-Finally, the interface will publish a `CONFIGDONE` event to indicate that it hassent the initial configuration data.
+Finally, the interface will publish a `CONFIGDONE` event to indicate that it has sent the initial configuration data.
 
 At this point the node server should be initialized.  It may start doing whatever processing it needs to do or it can simply wait for events from the interface.  
 
@@ -75,10 +75,10 @@ If the node server is being removed, Polyglot core will send a delete message to
 #### POLL
 When the Polyglot core sends a poll message to the interface, the interface will publish a `POLL` event.  The `POLL` event contains a string with type of poll event.  It will be either 'shortPoll' or 'longPoll'.
 
-Note again that this is called from within a separate thread so that if your poll processing takes longer than a poll interval you can end up with multiple poll processes running concurently.  
+Note again that this is called from within a separate thread so that if your poll processing takes longer than a poll interval you can end up with multiple poll processes running conccurently.  
 
 #### CUSTOMPARAMS / CUSTOMTYPEDDATA
-Whenever the user saves configuration data from the Polyglot dashboard UI a message is sent to the interface with the updated data.  The interface then publishes this updated data via the `CUSTOMPARAMS` and `CUSTOMTYPEDDATA` events.
+Whenever the user saves configuration data from the Polyglot dashboard UI a message is sent to the interface with the updated data.  The interface then publishes this updated data via the `CUSTOM   PARAMS` and `CUSTOMTYPEDDATA` events.
 
 This means you don't need to tell the user to restart the node server after updating the configuration data.
 
