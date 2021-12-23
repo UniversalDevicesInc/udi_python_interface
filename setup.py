@@ -18,7 +18,7 @@ setup(name='udi_interface',
         "python-dotenv",
         "markdown2",
         "netifaces",
-        "pyisy<=2.1.1"
+        "pyisy<=2.1.2"
     ],
     python_requires='>3.6.*',
     zip_safe=False,
