@@ -7,7 +7,7 @@ from .interface import Interface
 from .custom import Custom
 from .isy import ISY
 
-__version__ = '3.0.25'
+__version__ = '3.0.26'
 __description__ = 'UDI Python Interface for Polyglot version 3'
 __url__ = 'https://github.com/UniversalDevicesInc/udi-python-interface'
 __author__ = 'Universal Devices Inc.'
