@@ -55,7 +55,7 @@ class Node(object):
         Get the driver value
         """
         for dv in self.drivers:
-            NLOGGER.debug('{} - {} :: getting dv {}'.format(dv['driver'], dv['value'], driver))
+            NLOGGER.debug('{}:{} {} - {} :: getting dv {}'.format(self.address, self.name, dv['driver'], dv['value'], driver))
             if dv['driver'] == driver:
                 return dv['value']
 
@@ -79,10 +79,10 @@ class Node(object):
             changed = True
 
         if report and (changed or force):
-            NLOGGER.debug('Reporting set {} to {} to Polyglot'.format(driver, value))
+            NLOGGER.debug('{}:{} Reporting set {} to {} to Polyglot'.format(self.address, self.name, driver, value))
             self.reportDriver(driver, force)
         else:
-            NLOGGER.debug('No change in {}\'s value'.format(driver))
+            NLOGGER.debug('{}:{} No change in {}\'s value'.format(self.address, self.name, driver))
 
     def reportDriver(self, driver, force):
         """ Send existing driver value to ISY """
