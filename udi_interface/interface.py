@@ -1046,7 +1046,7 @@ class Interface(object):
             LOGGER.info(
                 'check_profile: Updated needed since it has never been recorded.')
             update_profile = True
-        elif isinstance(cdata, dict) and self.serverdata['profile_version'] == cdata:
+        elif isinstance(cdata, str) and self.serverdata['profile_version'] == cdata:
             LOGGER.info('check_profile: No updated needed: "{}" == "{}"'.format(
                 self.serverdata['profile_version'], cdata))
             update_profile = False
@@ -1062,7 +1062,7 @@ class Interface(object):
 
             st = self.updateProfile()
 
-            self._ifaceData.profile_version = serverdata['profile_version']
+            self._ifaceData.profile_version = self.serverdata['profile_version']
 
         return update_profile
 
