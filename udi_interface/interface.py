@@ -869,6 +869,22 @@ class Interface(object):
         """ Returns a copy of the last config received. """
         return self.config
 
+    def db_getNodeDrivers(self, addr):
+        """ Returns a list of nodes that were saved in the database """
+        nl = []
+        try:
+            if 'nodes' in self.config:
+                nl = self.config['nodes'] # an array of nodes
+                for n in nl:
+                    if n['address'] == addr:
+                        return n['drivers']  # this is an array
+            else:
+                LOGGER.error(f'node {addr} not found in config')
+        except:
+            LOGGER.warning(f'nodeserver config has not yet been recieved.')
+
+        return nl
+
     def getNodes(self):
         """
         Returns your list of nodes.  This is a list of nodes with your
