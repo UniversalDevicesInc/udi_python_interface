@@ -267,6 +267,8 @@ for n in poly.nodes():
 
 __delNode(node)__ Allows you to delete the node specified. You need to pass the actual node. Alternatively, you can use delNode() directly on the node itself, which has the same effect.
 
+__db_getNodeDrivers(address)__ returns the array of drivers, as saved in the PG3 database, for the specified address.  This is primarily used by the node class during node initialization but is available to node server.
+
 __updateProfile()__, Sends the latest profile to ISY from the profile folder.
 
 __setCustomParamsDoc(md\_doc)__, allows you to set the markdown help file for your params. 

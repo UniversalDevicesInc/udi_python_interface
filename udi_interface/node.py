@@ -27,6 +27,8 @@ class Node(object):
             self.enabled = None
             self.added = None
             self.private = None
+            # Update driver value/uom from database
+            self._updateDrivers(poly, address)
         except (KeyError) as err:
             NLOGGER.error('Error Creating node: {}'.format(err), exc_info=True)
 
@@ -50,6 +52,18 @@ class Node(object):
     def updateDrivers(self, drivers):
         self.drivers = deepcopy(drivers)
 
+    def _updateDrivers(self, poly, address):
+        db_drivers = poly.db_getNodeDrivers(address)
+        try:
+            for drv in db_drivers:
+                for d in self.drivers:
+                    if d['driver'] == drv['driver']:
+                        NLOGGER.debug(f"Update default {d['driver']} to {drv['value']} / {drv['uom']}")
+                        d['value'] = drv['value']
+                        d['uom'] = drv['uom']
+        except Exception as e:
+            NLOGGER.error(f'Failed to update driver default values for {address}: {e}')
+                
     def getDriver(self, driver):
         """
         Get the driver value
