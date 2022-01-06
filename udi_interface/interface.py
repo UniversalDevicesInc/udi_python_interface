@@ -500,7 +500,7 @@ class Interface(object):
         timeout = 10
         while not self.subscribed:
             if timeout == 0:
-                LOGGER.error('MQTT Send timeout :: {}.'.format(messsage))
+                LOGGER.error('MQTT Send timeout :: {}.'.format(message))
                 return
 
             LOGGER.warning('MQTT Send waiting on connection :: {}'.format(message))
