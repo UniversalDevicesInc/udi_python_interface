@@ -58,11 +58,11 @@ class Node(object):
             for drv in db_drivers:
                 for d in self.drivers:
                     if d['driver'] == drv['driver']:
-                        NLOGGER.debug(f"Update default {d['driver']} to {drv['value']} / {drv['uom']}")
+                        NLOGGER.debug(f"Update {address} default {d['driver']} to {drv['value']} / {drv['uom']}")
                         d['value'] = drv['value']
                         d['uom'] = drv['uom']
         except Exception as e:
-            NLOGGER.error(f'Failed to update driver default values for {address}: {e}')
+            NLOGGER.error(f'Failed to update driver default values for node {address} of drv={drv}: {e}',exc_info=True)
                 
     def getDriver(self, driver):
         """
@@ -81,7 +81,7 @@ class Node(object):
 
         drv = next((item for (item,d) in enumerate(self.drivers) if d['driver'] == driver), None)
         if drv == None:
-            NLOGGER.error('setDriver: Invalid driver: {}'.format(driver))
+            NLOGGER.error('{}:{} Invalid driver: {}'.format(self.address,self.name,driver))
             return
 
         if uom != None and self.drivers[drv]['uom'] != uom:
