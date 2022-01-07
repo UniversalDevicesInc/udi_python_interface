@@ -117,7 +117,10 @@ class Custom(dict):
         return item in self.__dict__['_rawdata']
 
     def __repr__(self):
-        return repr(self.__dict__['_rawdata']
+        return repr(self.__dict__['_rawdata'])
+
+    def __str__(self):
+        return str(self.__dict__['_rawdata'])
 
     def delete(self, key):
         if key in self._rawdata:
