@@ -116,6 +116,9 @@ class Custom(dict):
     def __contains__(self, item):
         return item in self.__dict__['_rawdata']
 
+    def __repr__(self):
+        return repr(self.__dict__['_rawdata']
+
     def delete(self, key):
         if key in self._rawdata:
             self._rawdata.pop(key)
