@@ -621,9 +621,24 @@ class Interface(object):
             for key in input:
                 LOGGER.debug('DEQUEING {}'.format(key))
                 if isinstance(input[key], list):
+                    published = {
+                            'notices': self.NOTICES,
+                            'customparams': self.CUSTOMPARAMS,
+                            'customtypedparams': self.CUSTOMTYPEDPARMS,
+                            'customdata': self.CUSTOMDATA,
+                            'customtypeddata': self.CUSTOMTYPEDDATA,
+                            'idata': None,
+                            'nscustom': self.NSCUSTOM,
+                            }
                     for item in input[key]:
                         self._handleInput(key, item)
+
+                    # We want to also make sure we've published all events?
                     if key == 'getAll':
+                        for k in published:
+                            if published[k] != None:
+                                pub.publish(published[k], None, None)
+
                         pub.publish_wait(self.CONFIGDONE, None)
                 else:
                     self._handleInput(key, input[key])
@@ -704,24 +719,34 @@ class Interface(object):
                     except:
                         value = item.get('value')
 
+                    k = item.get('key')
+                    published[k] = None
+
+
                     #LOGGER.error('GETALL -> {} {}'.format(item.get('key'), value))
                     if item.get('key') == 'notices':
                         self.Notices.load(value)
                         pub.publish_nt(self.NOTICES, None, value)
+                        published['notices'] = None
                     elif item.get('key') == 'customparams':
                         pub.publish_nt(self.CUSTOMPARAMS, None, value)
+                        published['customparams'] = None
                     elif item.get('key') == 'customtypedparams':
                         pub.publish_nt(self.CUSTOMTYPEDPARAMS, None, value)
+                        published['customtypedparams'] = None
                     elif item.get('key') == 'customdata':
                         pub.publish_nt(self.CUSTOMDATA, None, value)
+                        published['customdata'] = None
                     elif item.get('key') == 'customtypeddata':
                         pub.publish_nt(self.CUSTOMTYPEDDATA, None, value)
+                        published['customtypeddata'] = None
                     elif item.get('key') == 'idata':
                         self._ifaceData.load(value)
                     else:
                         # node server custom key
                         LOGGER.debug('Key {} should be passed to node server.'.format(item.get('key')))
                         pub.publish_nt(self.CUSTOMNS, None, item.get('key'), value)
+                        published['nscustom'] = None
             except ValueError as e:
                 LOGGER.error('Failure trying to load {} data'.format(item.get('key')))
         elif key == 'command':
