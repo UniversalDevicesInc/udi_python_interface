@@ -637,7 +637,10 @@ class Interface(object):
                     if key == 'getAll':
                         for k in published:
                             if published[k] != None:
-                                pub.publish(published[k], None, None)
+                                if k == 'nscustom':
+                                    pub.publish(published[k], None, None, None)
+                                else:
+                                    pub.publish(published[k], None, None)
 
                         pub.publish_wait(self.CONFIGDONE, None)
                 else:
