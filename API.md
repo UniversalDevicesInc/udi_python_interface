@@ -265,6 +265,8 @@ for n in poly.nodes():
         n.query()
 ```
 
+__db_getNodeDrivers(address)__ gets the drivers for the specified node from the PG3 database. These are not the class objects.  The address parameter is optional.  If it is not specified or the address doesn't match anyting in the list, the entire array of nodes saved in the database is returned.
+
 __delNode(node)__ Allows you to delete the node specified. You need to pass the actual node. Alternatively, you can use delNode() directly on the node itself, which has the same effect.
 
 __db_getNodeDrivers(address)__ returns the array of drivers, as saved in the PG3 database, for the specified address.  This is primarily used by the node class during node initialization but is available to node server.

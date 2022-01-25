@@ -36,6 +36,11 @@ class Custom(dict):
         self.poly.send(message, 'custom')
 
     def load(self, new_data, save=False):
+
+        if new_data is None:
+            self.__dict__['_rawdata'] = {}
+            return
+
         """
         FIXME: this is used to update the internal data
         structure from Polyglot's database.  Should this
@@ -112,6 +117,15 @@ class Custom(dict):
 
     def __len__(self):
         return len(self.__dict__['_rawdata'])
+
+    def __contains__(self, item):
+        return item in self.__dict__['_rawdata']
+
+    def __repr__(self):
+        return repr(self.__dict__['_rawdata'])
+
+    def __str__(self):
+        return str(self.__dict__['_rawdata'])
 
     def delete(self, key):
         if key in self._rawdata:
