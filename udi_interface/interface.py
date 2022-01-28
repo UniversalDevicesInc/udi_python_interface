@@ -215,6 +215,8 @@ class Interface(object):
         """ persistent storage for Notices """
         self.Notices = Custom(self, 'notices')
 
+        LOGGER.info('Initialization received from Polyglot V3 {}  [ISY: {}, Slot: {}]'.format(self.pg3init['pg3Version'], self.pg3init['isyVersion'], self.pg3init['profileNum']))
+
         try:
             self.network_interface = self.getNetworkInterface()
             LOGGER.info('Connect: Network Interface: {}'.format(
