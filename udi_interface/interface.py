@@ -544,9 +544,6 @@ class Interface(object):
         self._nodes[address] = node properties from config
         self.nodes_internal[address] = a node object?
                       - Added by addNode() or updateNode()
-                      - addNode will copy driver values from _nodes and
-                        replace the default values before sending to core
-                        that's really the only thing _nodes is used for.
 
         """
         # update our internal _nodes list.
@@ -617,6 +614,25 @@ class Interface(object):
         # start has finished. Do we know which one this is?
         pub.publish(self.STARTDONE, None, address)
 
+    '''
+    the _parseInput loop pulls messages from the incoming queue and 
+    processes them.  For messages that only generate events, those
+    events are published using separate threads to prevent any node
+    server event handler from blocking this process.  However, if 
+    other calls to the node server don't return, those will block
+    processing of messages which is not a good thing. 
+
+    Is it possible to do each message processing in it's own thread?
+    What kind of locking issues would we run into?  This would mainly
+    mean separating out the loop from processing like:
+       while True:
+          msg = self.inQueue.get()
+              Thread(target=self._processMsg, args=[msg]).start()
+    
+    Messages can be single {key:value} type messages or an array
+    of [{key:value}...] messages.  Should process each message in
+    the array separately too.
+    '''
     def _parseInput(self):
         while True:
             input = self.inQueue.get()
@@ -757,6 +773,8 @@ class Interface(object):
         elif key == 'command':
             if item['address'] in self.nodes_internal:
                 try:
+                    # FIXME: should we run this in a thread? it's bad if the
+                    # node server blocks here.
                     self.nodes_internal[item['address']].runCmd(item)
                 except (Exception) as err:
                     LOGGER.error('_parseInput: failed {}.runCmd({}) {}'.format(
@@ -881,8 +899,9 @@ class Interface(object):
             }]
         }
         self.send(message, 'command')
-        self._nodes[node.address] = node
         self.nodes_internal[node.address] = node
+
+        # TODO: do we update self._nodes? 
 
         if conn_status is not None:
             self.setController(node.address, conn_status)
@@ -899,25 +918,49 @@ class Interface(object):
         """ Returns a copy of the last config received. """
         return self.config
 
-    def db_getNodeDrivers(self, addr = ''):
+    def db_getNodeDrivers(self, addr = None):
         """
         Returns a list of nodes or a list of drivers that were saved in the
-        database.  If an address is specified, return the drivers for that
-        node, otherwise, return the list of nodes.
+        database.  
+         If an address is specified, return the drivers for that node.
+         If an array of addresses is specified, return the matching array of
+           nodes.
+         If addr == None, return the entire list of nodes.
+
+        document what is returned here and in the API doc!
+
+        driver array [
+           {id, uuid, profileNum, address, driver, value, uom, timeAdded,
+            timeModified, dbVersion},
+        ]
+
+        node array [
+           {id, uuid, profileNum, address, name, nodeDefId, nls, hint,
+            controller, primaryNode, private, isPrimary, enabled, timeAdded,
+            timeModified, dbVersion [drivers]},
+        ]
         """
         nl = []
         try:
-            if 'nodes' in self.config:
-                nl = self.config['nodes'] # an array of nodes
-                for n in nl:
-                    if n['address'] == addr:
-                        return n['drivers']  # this is an array
+            if type(addr) == list:
+                for n in self._nodes:
+                    if n in addr:
+                        nl.append(self._nodes[n])
+            elif addr != None and addr != '':
+                for n in self._nodes:
+                    if self._nodes[n]['address'] == addr:
+                        return self._nodes[n]['drivers']  # this is an array
+                LOGGER.error(f'{addr} not found in database.')
             else:
-                LOGGER.error(f'No nodes found in config')
-        except:
-            LOGGER.warning(f'nodeserver config has not yet been recieved.')
+                for n in self._nodes:
+                    nl.append(self._nodes[n])
+        except Exception as e:
+            LOGGER.warning(f'Failed to get node or driver list: {e}.')
 
         return nl
+
+    def getNodesFromDb(self, addr = None):
+        return self.db_getNodeDrivers(addr)
 
     def getNodes(self):
         """

@@ -265,11 +265,56 @@ for n in poly.nodes():
         n.query()
 ```
 
-__db_getNodeDrivers(address)__ gets the drivers for the specified node from the PG3 database. These are not the class objects.  The address parameter is optional.  If it is not specified or the address doesn't match anyting in the list, the entire array of nodes saved in the database is returned.
+__getDriversFromDb(address=None)__ Get either a driver list or node list from the PG3 database.  If an address is specified, this returns the driver list for that address.  If an array of addresses is specified, it will return a list with those specific nodes.  If None is specified, it returns the entire node list.
+
+The information returned is exactly what is stored in the PG3 database. Some of the data is specific to PG3 and is subject to change in future versions of PG3. Below are the fields of each list with notes on which are subject to change.
+
+drivers List
+```python
+[
+ { 
+   id,           # Internal, subject to change
+   uuid,         # Internal, subject to change
+   profileNum,   # Internal, subject to change
+   address,    
+   driver, 
+   value, 
+   uom, 
+   timeAdded,    # Internal, subject to change
+   timeModified, # Internal, subject to change
+   dbVersion     # Internal, subject to change
+ },
+]
+```
+
+node list
+```python
+[
+ { 
+   id,           # Internal, subject to change
+   uuid,         # Internal, subject to change
+   profileNum,   # Internal, subject to change
+   address,
+   name,
+   nodeDefId,
+   nls,
+   hint,
+   controller,
+   primaryNode,
+   private,
+   isPrimary,
+   enabled,
+   timeAdded,    # Internal, subject to change
+   timeModified, # Internal, subject to change
+   dbVersion     # Internal, subject to change
+   [list of drivers (see above)]
+ },
+]
+```
+
+__db_getNodeDrivers(address=None)__ deprecated, use getDriversFromDb(address=None) instead.
 
 __delNode(node)__ Allows you to delete the node specified. You need to pass the actual node. Alternatively, you can use delNode() directly on the node itself, which has the same effect.
-
-__db_getNodeDrivers(address)__ returns the array of drivers, as saved in the PG3 database, for the specified address.  This is primarily used by the node class during node initialization but is available to node server.
 
 __updateProfile()__, Sends the latest profile to ISY from the profile folder.
 
