@@ -163,6 +163,7 @@ The following event_id's are defined:
   * ISY               - Subscribe to ISY info data
   * CONFIGDONE        - Subscribe to initial configuration data sent event
   * DISCOVER          - Subscribe to user initiated device discovery event  
+  * OAUTH             - Subscribe to oauth token authentication data events 
 
 
 The data events will send the specific type of data, when that data changes in PG3.  For example, when the user changes a custom parameter, the CUSTOMPARAMS event will be published with the current (changed) custom parameter data.
@@ -209,6 +210,7 @@ Event handler prototypes:
  NSINFO            def handler(node_servers_info)
  CONFIGDONE        def handler()
  DISCOVER          def handler()
+ OAUTH             def handler(token_data)
 ```
 #### The Interface class variables
 

@@ -63,6 +63,7 @@ class pub(object):
          'custom_typed_data',
          'node_server_info',
          'discover',
+         'oauth',
          ]
 
     topics = {}
@@ -148,6 +149,7 @@ class Interface(object):
     CUSTOMTYPEDDATA   = 16
     NSINFO            = 17
     DISCOVER          = 18
+    OAUTH             = 19
 
     """
     Polyglot Interface Class
@@ -295,7 +297,7 @@ class Interface(object):
                          'config', 'customdata', 'customparams', 'notices',
                          'getIsyInfo', 'getAll', 'setLogLevel',
                          'customtypeddata', 'customtypedparams', 'getNsInfo',
-                         'discover', 'nsdata', 'setController']
+                         'discover', 'nsdata', 'setController', 'oauth']
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
             #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
@@ -724,6 +726,8 @@ class Interface(object):
             pub.publish(self.NSINFO, None, item)
         elif key == 'discover':
             pub.publish(self.DISCOVER, None)
+        elif key == 'oauth':
+            pub.publish(self.OAUTH, None, item)
         elif key == 'getAll':
             """
             This is one of the first messages we get from Polyglot.
