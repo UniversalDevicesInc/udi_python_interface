@@ -954,7 +954,7 @@ class Interface(object):
                 for n in self._nodes:
                     if self._nodes[n]['address'] == addr:
                         return self._nodes[n]['drivers']  # this is an array
-                LOGGER.error(f'{addr} not found in database.')
+                LOGGER.warning(f'{addr} not found in database.')
             else:
                 for n in self._nodes:
                     nl.append(self._nodes[n])
