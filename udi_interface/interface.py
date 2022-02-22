@@ -1003,9 +1003,12 @@ class Interface(object):
         }
         self.send(message, 'command')
 
-        """
-        TODO: Should this remove the node from _nodes?
-        """
+        # Delete node from internal list.
+        try:
+            if address in self.nodes_internal:
+                del self.nodes_internal[address]
+        except KeyError:
+            LOGGER.error('No node with address {}.'.format(address), exc_info=True)
 
     def updateProfile(self):
         """ Sends the latest profile files to the ISY """
