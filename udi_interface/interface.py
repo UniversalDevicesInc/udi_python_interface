@@ -272,6 +272,10 @@ class Interface(object):
                     self._mqttc.reconnect()
 
             self.subscribed = True
+        elif rc == 2: 
+            # Incorrect identifier, nothing to do but exit
+            LOGGER.error("MQTT Failed to connect, invalid identifier")
+            os._exit(2)
         else:
             LOGGER.error("MQTT Failed to connect. Result code: " + str(rc))
 
@@ -386,6 +390,12 @@ class Interface(object):
         :param mqttc: The client instance for this callback
         :param userdata: The private userdata for the mqtt client. Not used in Polyglot
         :param rc: Result code of connection, 0 = Graceful, anything else is unclean
+          0: Connection successful.
+          1: Connection refused – incorrect protocol version.
+          2: Connection refused – invalid client identifier.
+          3: Connection refused – server unavailable.
+          4: Connection refused – bad username or password.
+          5: Connection refused – not authorised.
         """
         self.connected = False
         if rc != 0:
@@ -397,6 +407,7 @@ class Interface(object):
                 template = "An exception of type {0} occured. Arguments:\n{1!r}"
                 message = template.format(type(ex).__name__, ex.args)
                 LOGGER.exception("MQTT Connection error: " + message)
+                os._exit(2)
         else:
             LOGGER.info("MQTT Graceful disconnection.")
 
