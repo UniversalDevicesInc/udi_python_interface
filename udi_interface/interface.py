@@ -874,12 +874,17 @@ class Interface(object):
     Methods below are callable by the nodeserver proper and are considered
     to be API.
     """
-    def start(self):
+    def start(self, version=None):
         """ Initiate the MQTT connection and start communication with Polyglot """
         for _, thread in self._threads.items():
             thread.start()
 
         self._get_server_data()
+
+        # Tell PG3 our version
+        if version:
+            self.serverdata['version'] = version
+
 
     def ready(self):
         """
@@ -887,7 +892,7 @@ class Interface(object):
         asking PG3 for the info we need.
         """
         LOGGER.debug('Asking PG3 for config/getAll now')
-        self.send({'config': {}}, 'system')
+        self.send({'config': {"version":self.serverdata["version"]}}, 'system')
         self.send({'getAll': {}}, 'custom')
         self.send({'getNsInfo': {}},'system')
 
