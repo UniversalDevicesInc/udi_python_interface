@@ -57,7 +57,7 @@ class Node(object):
         try:
             for drv in db_drivers:
                 for d in self.drivers:
-                    if 'driver' in drv and d['driver'] == drv['driver']:
+                    if 'restore' in d and d['restore'] and 'driver' in drv and d['driver'] == drv['driver']:
                         NLOGGER.debug(f"Update {address} default {d['driver']} to {drv['value']} / {drv['uom']}")
                         d['value'] = drv['value']
                         d['uom'] = drv['uom']
