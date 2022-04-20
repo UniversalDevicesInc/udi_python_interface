@@ -102,6 +102,8 @@ The list of drivers defines the node statuses, the uom, and contains the value.
 * __self.query()__ which is called when we get a query request (Override this to fetch live data).  
 * __self.status()__ which is called when we get a status request for this node.  
 * __self.delNode()__ which will remove the node from Polyglot and the ISY.  
+* __self.rename(new_name)__ rename the node to new_name.  
+
 
 ### The controller node
 

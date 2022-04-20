@@ -135,6 +135,16 @@ class Node(object):
     def status(self):
         self.reportDrivers()
 
+    def rename(self, newname):
+        message = {
+                'renamenode': [{
+                    'address': self.address,
+                    'name': newname
+                    }]
+        }
+
+        self.poly.send(message, 'command')
+
     def reportCmd(self, command, value=None, uom=None):
         message = {
             'command': [{
