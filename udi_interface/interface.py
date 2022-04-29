@@ -906,6 +906,10 @@ class Interface(object):
 
         :param node: Dictionary of node settings. Keys: address, name, node_def_id, primary, and drivers are required.
         """
+        if node.address in self._nodes and self._nodes[node.address].name != node.name:
+            LOGGER.warning("addNode(): Cannot be used to change the node's name")
+            node.name = self._nodes[node.address].name
+
         LOGGER.info('Adding node {}({}) [{}]'.format(node.name, node.address, node.private))
         message = {
             'addnode': [{
