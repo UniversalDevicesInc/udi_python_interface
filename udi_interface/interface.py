@@ -369,6 +369,8 @@ class Interface(object):
                     LOGGER.info('customparamsdoc response')
                 elif key == 'setLogLevelList':
                     LOGGER.info('setLogList response {}'.format(parsed_msg[key]))
+                elif key == 'renamenode':
+                    LOGGER.info('renamenode response {}'.format(parsed_msg[key]))
                 else:
                     LOGGER.error(
                         'Invalid command received in message from PG3: \'{}\' {}'.format(key, parsed_msg[key]))
