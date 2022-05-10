@@ -318,7 +318,11 @@ node list
 
 __db_getNodeDrivers(address=None)__ deprecated, use getDriversFromDb(address=None) instead.
 
+__getNodeNameFromDb(address)__ return the name of the node with the specified address from the data stored in the PG3 database.  This can be used to check if the node server needs to change/rename the node.
+
 __delNode(node)__ Allows you to delete the node specified. You need to pass the actual node. Alternatively, you can use delNode() directly on the node itself, which has the same effect.
+
+__renameNode(address, name)__ Allows you to rename the node specified. Alternatively, you can use rename() directly on the node itself, which has the same effect.
 
 __updateProfile()__, Sends the latest profile to ISY from the profile folder.
 
@@ -337,6 +341,9 @@ if os.path.isfile(configurationHelp):
 	poly.setCustomParamsDoc(cfgdoc)
 ```
 
+__getValidName(name)__ Remove characters that are considered illegal for node noames. 
+
+__getValidAddress(address)__ Remove characters that are considered illegal for node address.
 
 * __send()__ send a message to Polyglot directly.
 * __restart()__ allows you to self restart the NodeServer.

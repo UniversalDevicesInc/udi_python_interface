@@ -985,6 +985,39 @@ class Interface(object):
 
     def getNodesFromDb(self, addr = None):
         return self.db_getNodeDrivers(addr)
+    
+    def getNodeNameFromDb(self, addr):
+        try:
+            return self.getNodesFormDb([addr])[0]['name']
+        except:
+            return ''
+
+    # remove all illegal characters from node name
+    def getValidName(self, name):
+        nname = bytes(name, 'utf-8').decode('utf-8','ignore')
+        return re.sub(r"[<>`~!@#$%^&*(){}[\]?/\\;:\"']+", "", name)
+
+    # remove all illegal characters from node address
+    def getValidAddress(self, name):
+        name = bytes(name, 'utf-8').decode('utf-8','ignore')
+        return re.sub(r"[<>`-~!@#$%^&*(){}[\]?/\\;:\"']+", "", name.lower()[:14])
+    def isNameValid(self, name):
+        rname = bytes(name, 'utf-8').decode('utf-8','ignore')
+        # Remove <>`~!@#$%^&*(){}[]?/\;:"'` characters from name
+        rname = re.sub(r"[<>`~!@#$%^&*(){}[\]?/\\;:\"']+", "", rname)
+        
+        if rname != name:
+            return False
+        return True
+
+    def isAddressValid(self, address):
+        rname = bytes(name, 'utf-8').decode('utf-8','ignore')
+        # Remove <>`~!@#$%^&*(){}[]?/\;:"'` characters from name
+        rname = re.sub(r"[<>`-~!@#$%^&*(){}[\]?/\\;:\"']+", "", rname.lower()[:14])
+
+        if rname != address:
+            return False
+        return True
 
     def getNodes(self):
         """
@@ -1007,6 +1040,20 @@ class Interface(object):
             LOGGER.error(
                 'No node with address {}.'.format(address), exc_info=True)
             return None
+
+    def renameNode(self, address, newname):
+        """
+        Rename a node from the Node Server
+        """
+        LOGGER.info('Renaming node {}'.format(address))
+        message = {
+                'renamenode': [{
+                    'address': address,
+                    'name': newname
+                    }]
+        }
+
+        self.poly.send(message, 'command')
 
     def delNode(self, address):
         """
