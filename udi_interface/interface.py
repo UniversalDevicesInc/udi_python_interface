@@ -1055,7 +1055,7 @@ class Interface(object):
                     }]
         }
 
-        self.poly.send(message, 'command')
+        self.send(message, 'command')
 
     def delNode(self, address):
         """
