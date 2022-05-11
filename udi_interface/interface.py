@@ -990,9 +990,9 @@ class Interface(object):
     
     def getNodeNameFromDb(self, addr):
         try:
-            return self.getNodesFormDb([addr])[0]['name']
+            return self.getNodesFromDb([addr])[0]['name']
         except:
-            return ''
+            return None
 
     # remove all illegal characters from node name
     def getValidName(self, name):
