@@ -68,6 +68,7 @@ class pub(object):
 
     topics = {}
     cfg_threads = []
+    topic_data = []
 
     @staticmethod
     def subscribe(topic, callback, address):
@@ -78,9 +79,16 @@ class pub(object):
             pub.topics[pub.topic_list[topic]] = [[callback, address]]
         else:
             pub.topics[pub.topic_list[topic]].append([callback, address])
+        
+        # QUESTION: Should this publish any existing info to the subscriber?
+        for item in pub.topic_data:
+            if item[0] == topic and item[1] == address:
+                Thread(target=callback, args=item[2:]).start()
+
 
     @staticmethod
     def publish(topic, address, *argv):
+        pub.topic_data.append([topic, address, *argv])
         if pub.topic_list[topic] in pub.topics:
             for item in pub.topics[pub.topic_list[topic]]:
                 if item[1] == address:
@@ -88,6 +96,7 @@ class pub(object):
 
     @staticmethod
     def publish_nt(topic, address, *argv):
+        pub.topic_data.append([topic, address, *argv])
         if pub.topic_list[topic] in pub.topics:
             for item in pub.topics[pub.topic_list[topic]]:
                 if item[1] == address:
@@ -97,6 +106,7 @@ class pub(object):
 
     @staticmethod
     def publish_wait(topic, address, *argv):
+        pub.topic_data.append([topic, address, *argv])
         if pub.topic_list[topic] in pub.topics:
             for item in pub.topics[pub.topic_list[topic]]:
                 if item[1] == address:
