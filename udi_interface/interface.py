@@ -996,13 +996,13 @@ class Interface(object):
 
     # remove all illegal characters from node name
     def getValidName(self, name):
-        nname = bytes(name, 'utf-8').decode('utf-8','ignore')
+        name = bytes(name, 'utf-8').decode('utf-8','ignore')
         return re.sub(r"[<>`~!@#$%^&*(){}[\]?/\\;:\"']+", "", name)
 
     # remove all illegal characters from node address
     def getValidAddress(self, name):
         name = bytes(name, 'utf-8').decode('utf-8','ignore')
-        return re.sub(r"[<>`-~!@#$%^&*(){}[\]?/\\;:\"']+", "", name.lower()[:14])
+        return re.sub(r"[<>`~!@#$%^&*(){}[\]?/\\;:\"'\-]+", "", name.lower()[:14])
     def isNameValid(self, name):
         rname = bytes(name, 'utf-8').decode('utf-8','ignore')
         # Remove <>`~!@#$%^&*(){}[]?/\;:"'` characters from name
@@ -1013,9 +1013,9 @@ class Interface(object):
         return True
 
     def isAddressValid(self, address):
-        rname = bytes(name, 'utf-8').decode('utf-8','ignore')
+        rname = bytes(address, 'utf-8').decode('utf-8','ignore')
         # Remove <>`~!@#$%^&*(){}[]?/\;:"'` characters from name
-        rname = re.sub(r"[<>`-~!@#$%^&*(){}[\]?/\\;:\"']+", "", rname.lower()[:14])
+        rname = re.sub(r"[<>`~!@#$%^&*(){}[\]?/\\;:\"'\-]+", "", rname.lower()[:14])
 
         if rname != address:
             return False
