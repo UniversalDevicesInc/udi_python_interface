@@ -101,7 +101,6 @@ The list of drivers defines the node statuses, the uom, and contains the value.
 * __self.reportDrivers()__ to send existing driver values to ISY.  
 * __self.query()__ which is called when we get a query request (Override this to fetch live data).  
 * __self.status()__ which is called when we get a status request for this node.  
-* __self.delNode()__ which will remove the node from Polyglot and the ISY.  
 * __self.rename(new_name)__ rename the node to new_name.  
 
 
@@ -320,7 +319,7 @@ __db_getNodeDrivers(address=None)__ deprecated, use getDriversFromDb(address=Non
 
 __getNodeNameFromDb(address)__ return the name of the node with the specified address from the data stored in the PG3 database.  This can be used to check if the node server needs to change/rename the node.
 
-__delNode(node)__ Allows you to delete the node specified. You need to pass the actual node. Alternatively, you can use delNode() directly on the node itself, which has the same effect.
+__delNode(address)__ Allows you to delete the node specified. You need to pass the node address.
 
 __renameNode(address, name)__ Allows you to rename the node specified. Alternatively, you can use rename() directly on the node itself, which has the same effect.
 
