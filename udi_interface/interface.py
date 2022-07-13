@@ -7,7 +7,7 @@ import ssl
 import logging
 import markdown2
 import os
-from os.path import join, expanduser
+from os.path import join, expanduser, exists
 import paho.mqtt.client as mqtt
 try:
     import queue
@@ -196,20 +196,16 @@ class Interface(object):
         self._threads['input'] = Thread(
             target=self._parseInput, name='Command')
         self._mqttc = mqtt.Client(self.id, True)
-        self._mqttc.username_pw_set(self.id, self.pg3init['token'])
         self._mqttc.on_connect = self._connect
         self._mqttc.on_message = self._message
         self._mqttc.on_subscribe = self._subscribe
         self._mqttc.on_disconnect = self._disconnect
         self._mqttc.on_publish = self._publish
         self._mqttc.on_log = self._log
+        self.using_mosquitto = True
         self.useSecure = True
         self._nodes = {}
         self.nodes_internal = {}
-        if self.pg3init['secure'] == 1:
-            self.sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-            self.sslContext.check_hostname = False
-            self._mqttc.tls_set_context(self.sslContext)
         self.loop = None
         self.inQueue = queue.Queue()
         self.isyVersion = None
@@ -269,6 +265,14 @@ class Interface(object):
             results = []
             LOGGER.info("MQTT Connected with result code " +
                         str(rc) + " (Success)")
+
+            # Publish connection status and set up will
+            if self.using_mosquitto:
+                connected = {"connected": [{}]}
+                self._mqttc.publish('udi/pg3/connections/ns/{}'.format(self.id), json.dumps(connected), retain=True)
+                failed = {"disconnected": [{}]}
+                self._mqttc.will_set('udi/pg3/connections/ns/{}'.format(self.id), json.dumps(failed), qos=0, retain=True)
+
             results.append((self.topicInput, tuple(
                 self._mqttc.subscribe(self.topicInput))))
             for (topic, (result, mid)) in results:
@@ -445,6 +449,34 @@ class Interface(object):
         """
         LOGGER.info('Connecting to MQTT... {}:{}'.format(
             self._server, self._port))
+
+        self.username = self.id
+
+        # Load the client SSL certificate.  What if this fails?
+        if self.pg3init['secure'] == 1:
+            self.sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+            self.sslContext.check_hostname = False
+            cert = self.username + ".cert"
+            key  = self.username + ".key"
+
+            # only if certs exist!
+            if exists(cert) and exists(key):
+                LOGGER.info('Using SSL certs: {} {}'.format(cert, key))
+                self.sslContext.load_cert_chain(cert, key)
+                self.username = self.id.replace(':', '')
+                self.using_mosquitto = True
+            else:
+                self.using_mosquitto = False
+
+            self._mqttc.tls_set_context(self.sslContext)
+
+        self._mqttc.username_pw_set(self.username, self.pg3init['token'])
+
+        if self.using_mosquitto:
+            # Set up the will, do we need this here?
+            failed = {"disconnected": [{}]}
+            self._mqttc.will_set('udi/pg3/connections/ns/{}'.format(self.id), json.dumps(failed), qos=0, retain=True)
+
         done = False
         while not done:
             try:
@@ -512,6 +544,8 @@ class Interface(object):
             LOGGER.info('Disconnecting from MQTT... {}:{}'.format(
                 self._server, self._port))
             self._mqttc.loop_stop()
+            disconnect = {"disconnected": [{}]}
+            self._mqttc.publish('udi/pg3/connections/ns/{}'.format(self.id), json.dumps(disconnect), retain=True)
             self._mqttc.disconnect()
 
     def send(self, message, type):
