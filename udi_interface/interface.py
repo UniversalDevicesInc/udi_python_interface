@@ -988,7 +988,7 @@ class Interface(object):
         """ Returns a copy of the last config received. """
         return self.config
 
-    def db_getNodeDrivers(self, addr = None):
+    def db_getNodeDrivers(self, addr = None, init = False):
         """
         Returns a list of nodes or a list of drivers that were saved in the
         database.  
@@ -1020,7 +1020,9 @@ class Interface(object):
                 for n in self._nodes:
                     if self._nodes[n]['address'] == addr:
                         return self._nodes[n]['drivers']  # this is an array
-                LOGGER.warning(f'{addr} not found in database.')
+                # ignore the warning if we're initialzing the node.
+                if not init:
+                    LOGGER.warning(f'{addr} not found in database.')
             else:
                 for n in self._nodes:
                     nl.append(self._nodes[n])
