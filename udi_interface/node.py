@@ -53,7 +53,7 @@ class Node(object):
     def updateDrivers(self, drivers):
         self.drivers = deepcopy(drivers)
 
-    def _updateDrivers(self, poly, address):
+    def _updateDrivers(self, poly, address, init=True):
         db_drivers = poly.db_getNodeDrivers(address)
         try:
             for drv in db_drivers:
