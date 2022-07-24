@@ -7,9 +7,9 @@ from .interface import Interface
 from .custom import Custom
 from .isy import ISY
 
-__version__ = '3.0.46'
+__version__ = '3.0.47'
 __description__ = 'UDI Python Interface for Polyglot version 3'
-__url__ = 'https://github.com/UniversalDevicesInc/udi-python-interface'
+__url__ = 'https://github.com/UniversalDevicesInc/udi_python_interface'
 __author__ = 'Universal Devices Inc.'
 __authoremail__ = 'bpaauwe@yahoo.com'
 __license__ = 'MIT'
