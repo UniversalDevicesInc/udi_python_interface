@@ -1,3 +1,4 @@
 markdown2>=2.3.5
 netifaces
+requests
 pyisy<3.0.0
