@@ -164,13 +164,13 @@ class Node(object):
                 fun = self.commands[command['cmd']]
                 fun(self, command)
             else:
-                NLOGGER.error('command {} not defined'.format(command['cmd']))
+                NLOGGER.error('node {} command {} not defined'.format(self.address,command['cmd']))
         elif 'success' in command:
             if not command['success']:
-                NLOGGER.error('Command message failed: {}'.format(command))
+                NLOGGER.error('Command message failed for node {}: {}'.format(self.address,command))
 
         else:
-            NLOGGER.error('Invalid command message: {}'.format(command))
+            NLOGGER.error('Invalid command message for node {}: {}'.format(self.address,command))
 
 
     def start(self):
