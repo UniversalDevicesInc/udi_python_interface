@@ -529,13 +529,8 @@ class Interface(object):
     def _get_server_data(self):
         """
         _get_server_data: Loads the server.json and returns as a dict
-        :param check_profile: Calls the check_profile method if True
-
-        If profile_version in json is null then profile will be loaded on
-        every restart.
-
         """
-        self.serverdata = {'version': 'unknown'}
+        self.serverdata = {'version': '0.0.0', 'profile_version': 'NotDefined'}
 
         # Read the SERVER info from the json.
         try:
@@ -543,7 +538,13 @@ class Interface(object):
                 self.serverdata = json.load(data)
             data.close()
         except Exception as err:
-            LOGGER.error('get_server_data: failed to read file {0}: {1}'.format(
+            """
+            Failure to load the server.json file is no longer an error.
+            The only things that may be used from the server.json file are
+            the version number (as a fallback if start isn't called with one)
+            and the profile_version for checkProfile().
+            """
+            LOGGER.warning('get_server_data: failed to read file {0}: {1}'.format(
                 Interface.SERVER_JSON_FILE_NAME, err), exc_info=True)
             return
 
@@ -960,6 +961,8 @@ class Interface(object):
         # Tell PG3 our version
         if version:
             self.serverdata['version'] = version
+        else:
+            LOGGER.warning('No node server version specified. Using deprecated server.json version')
 
 
     def ready(self):
@@ -1271,14 +1274,13 @@ class Interface(object):
         LOGGER.debug('check_profile: force={} build_profile={}'.format(
             force, build_profile))
 
-        """ FIXME: this should be from self._ifaceData """
         cdata = self._ifaceData.profile_version
 
         LOGGER.debug('check_profile:   saved_version={}'.format(cdata))
         LOGGER.debug('check_profile: profile_version={}'.format(
             self.serverdata['profile_version']))
         if self.serverdata['profile_version'] == "NotDefined":
-            LOGGER.error(
+            LOGGER.warning(
                 'check_profile: Ignoring since nodeserver does not have profile_version')
             return False
 
