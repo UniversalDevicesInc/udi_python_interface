@@ -7,7 +7,7 @@ import ssl
 import logging
 import markdown2
 import os
-from os.path import join, expanduser
+from os.path import join, expanduser, exists
 import paho.mqtt.client as mqtt
 try:
     import queue
@@ -70,6 +70,17 @@ class pub(object):
     cfg_threads = []
     topic_data = []
 
+    '''
+    when called, this adds a callback, address pair to a topic.  The 'topics'
+    dictionary will look like:
+    topics = {
+        config: [(callback, address), (callback, address)],
+        start: [(callback, address), (callback, address)],
+    }
+
+    When something subscribes, send any previous published events for the
+    topic to the subscriber.  I.E. backlog events.
+    '''
     @staticmethod
     def subscribe(topic, callback, address):
         if int(topic) >= len(pub.topic_list):
@@ -80,26 +91,44 @@ class pub(object):
         else:
             pub.topics[pub.topic_list[topic]].append([callback, address])
         
-        # QUESTION: Should this publish any existing info to the subscriber?
+        # Send backlog events if any
         for item in pub.topic_data:
-            if item[0] == topic and item[1] == address:
+            if item[0] == topic and (address == None or item[1] == address):
                 Thread(target=callback, args=item[2:]).start()
 
 
+    '''
+    when we publish an event, we first push the event on to the backlog
+    queue so that any later subscribers will get the event when they 
+    subscribe.
+    '''
     @staticmethod
     def publish(topic, address, *argv):
         pub.topic_data.append([topic, address, *argv])
+
+        # check if anyone has subscribed to this event
         if pub.topic_list[topic] in pub.topics:
+            # loop through all of the subscribers
             for item in pub.topics[pub.topic_list[topic]]:
-                if item[1] == address:
+                '''
+                With the exception of the START event, all others are
+                published with address == None.  
+
+                For the START event we want to check the subscribers 
+                address filter value (item[1]) and compare it with the
+                address in the event.  For all other events we don't
+                really care.
+                '''
+                if address == None or item[1] == address:
                     Thread(target=item[0], args=[*argv]).start()
 
     @staticmethod
     def publish_nt(topic, address, *argv):
         pub.topic_data.append([topic, address, *argv])
+
         if pub.topic_list[topic] in pub.topics:
             for item in pub.topics[pub.topic_list[topic]]:
-                if item[1] == address:
+                if address == None or item[1] == address:
                     t = Thread(target=item[0], args=[*argv])
                     pub.cfg_threads.append(t)
                     t.start()
@@ -107,9 +136,10 @@ class pub(object):
     @staticmethod
     def publish_wait(topic, address, *argv):
         pub.topic_data.append([topic, address, *argv])
+
         if pub.topic_list[topic] in pub.topics:
             for item in pub.topics[pub.topic_list[topic]]:
-                if item[1] == address:
+                if address == None or item[1] == address:
                     Thread(target=pub.waitForFinish, args=[item[0], *argv]).start()
 
 
@@ -196,20 +226,16 @@ class Interface(object):
         self._threads['input'] = Thread(
             target=self._parseInput, name='Command')
         self._mqttc = mqtt.Client(self.id, True)
-        self._mqttc.username_pw_set(self.id, self.pg3init['token'])
         self._mqttc.on_connect = self._connect
         self._mqttc.on_message = self._message
         self._mqttc.on_subscribe = self._subscribe
         self._mqttc.on_disconnect = self._disconnect
         self._mqttc.on_publish = self._publish
         self._mqttc.on_log = self._log
+        self.using_mosquitto = True
         self.useSecure = True
         self._nodes = {}
         self.nodes_internal = {}
-        if self.pg3init['secure'] == 1:
-            self.sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-            self.sslContext.check_hostname = False
-            self._mqttc.tls_set_context(self.sslContext)
         self.loop = None
         self.inQueue = queue.Queue()
         self.isyVersion = None
@@ -269,6 +295,14 @@ class Interface(object):
             results = []
             LOGGER.info("MQTT Connected with result code " +
                         str(rc) + " (Success)")
+
+            # Publish connection status and set up will
+            if self.using_mosquitto:
+                connected = {"connected": [{}]}
+                self._mqttc.publish('udi/pg3/connections/ns/{}'.format(self.id), json.dumps(connected), retain=True)
+                failed = {"disconnected": [{}]}
+                self._mqttc.will_set('udi/pg3/connections/ns/{}'.format(self.id), json.dumps(failed), qos=0, retain=True)
+
             results.append((self.topicInput, tuple(
                 self._mqttc.subscribe(self.topicInput))))
             for (topic, (result, mid)) in results:
@@ -445,6 +479,34 @@ class Interface(object):
         """
         LOGGER.info('Connecting to MQTT... {}:{}'.format(
             self._server, self._port))
+
+        self.username = self.id
+
+        # Load the client SSL certificate.  What if this fails?
+        if self.pg3init['secure'] == 1:
+            self.sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+            self.sslContext.check_hostname = False
+            cert = self.username + ".cert"
+            key  = self.username + ".key"
+
+            # only if certs exist!
+            if exists(cert) and exists(key):
+                LOGGER.info('Using SSL certs: {} {}'.format(cert, key))
+                self.sslContext.load_cert_chain(cert, key)
+                self.username = self.id.replace(':', '')
+                self.using_mosquitto = True
+            else:
+                self.using_mosquitto = False
+
+            self._mqttc.tls_set_context(self.sslContext)
+
+        self._mqttc.username_pw_set(self.username, self.pg3init['token'])
+
+        if self.using_mosquitto:
+            # Set up the will, do we need this here?
+            failed = {"disconnected": [{}]}
+            self._mqttc.will_set('udi/pg3/connections/ns/{}'.format(self.id), json.dumps(failed), qos=0, retain=True)
+
         done = False
         while not done:
             try:
@@ -467,13 +529,8 @@ class Interface(object):
     def _get_server_data(self):
         """
         _get_server_data: Loads the server.json and returns as a dict
-        :param check_profile: Calls the check_profile method if True
-
-        If profile_version in json is null then profile will be loaded on
-        every restart.
-
         """
-        self.serverdata = {'version': 'unknown'}
+        self.serverdata = {'version': '0.0.0', 'profile_version': 'NotDefined'}
 
         # Read the SERVER info from the json.
         try:
@@ -481,7 +538,13 @@ class Interface(object):
                 self.serverdata = json.load(data)
             data.close()
         except Exception as err:
-            LOGGER.error('get_server_data: failed to read file {0}: {1}'.format(
+            """
+            Failure to load the server.json file is no longer an error.
+            The only things that may be used from the server.json file are
+            the version number (as a fallback if start isn't called with one)
+            and the profile_version for checkProfile().
+            """
+            LOGGER.warning('get_server_data: failed to read file {0}: {1}'.format(
                 Interface.SERVER_JSON_FILE_NAME, err), exc_info=True)
             return
 
@@ -512,6 +575,8 @@ class Interface(object):
             LOGGER.info('Disconnecting from MQTT... {}:{}'.format(
                 self._server, self._port))
             self._mqttc.loop_stop()
+            disconnect = {"disconnected": [{}]}
+            self._mqttc.publish('udi/pg3/connections/ns/{}'.format(self.id), json.dumps(disconnect), retain=True)
             self._mqttc.disconnect()
 
     def send(self, message, type):
@@ -896,6 +961,8 @@ class Interface(object):
         # Tell PG3 our version
         if version:
             self.serverdata['version'] = version
+        else:
+            LOGGER.warning('No node server version specified. Using deprecated server.json version')
 
 
     def ready(self):
@@ -954,7 +1021,7 @@ class Interface(object):
         """ Returns a copy of the last config received. """
         return self.config
 
-    def db_getNodeDrivers(self, addr = None):
+    def db_getNodeDrivers(self, addr = None, init = False):
         """
         Returns a list of nodes or a list of drivers that were saved in the
         database.  
@@ -986,7 +1053,9 @@ class Interface(object):
                 for n in self._nodes:
                     if self._nodes[n]['address'] == addr:
                         return self._nodes[n]['drivers']  # this is an array
-                LOGGER.warning(f'{addr} not found in database.')
+                # ignore the warning if we're initialzing the node.
+                if not init:
+                    LOGGER.warning(f'{addr} not found in database.')
             else:
                 for n in self._nodes:
                     nl.append(self._nodes[n])
@@ -1205,14 +1274,13 @@ class Interface(object):
         LOGGER.debug('check_profile: force={} build_profile={}'.format(
             force, build_profile))
 
-        """ FIXME: this should be from self._ifaceData """
         cdata = self._ifaceData.profile_version
 
         LOGGER.debug('check_profile:   saved_version={}'.format(cdata))
         LOGGER.debug('check_profile: profile_version={}'.format(
             self.serverdata['profile_version']))
         if self.serverdata['profile_version'] == "NotDefined":
-            LOGGER.error(
+            LOGGER.warning(
                 'check_profile: Ignoring since nodeserver does not have profile_version')
             return False
 
