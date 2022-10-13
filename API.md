@@ -268,9 +268,11 @@ for n in poly.nodes():
         n.query()
 ```
 
-__getDriversFromDb(address=None)__ Get either a driver list or node list from the PG3 database.  If an address is specified, this returns the driver list for that address.  If an array of addresses is specified, it will return a list with those specific nodes.  If None is specified, it returns the entire node list.
+__getNodesFromDb(address=None)__ When a node server starts, PG3 sends the saved node server configuration informatation that was stored in its database. This includes information on the node/driver state. __getNodesFromDb()__ allows node servers access to that data so that it may be used to re-create its internal representation of the nodes, including the last state of the driver values. If an address is specified, this returns the driver list for that address.  If an array of addresses is specified, it will return a list with those specific nodes.  If None is specified, it returns the entire node list.
 
-The information returned is exactly what is stored in the PG3 database. Some of the data is specific to PG3 and is subject to change in future versions of PG3. Below are the fields of each list with notes on which are subject to change.
+The information returned is exactly what is stored in the PG3 database and sent to the node sever during node server initialization. This information is a static representation of what was stored in the database at the time the node server started.  It is not dynamically querying the database for the current state.
+
+Some of the data is specific to PG3 and is subject to change in future versions of PG3. Below are the fields of each list with notes on which are subject to change.
 
 drivers List
 ```python
