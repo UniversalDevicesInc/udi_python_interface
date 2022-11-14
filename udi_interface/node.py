@@ -144,6 +144,7 @@ class Node(object):
         }
 
         self.poly.send(message, 'command')
+        self.name = newname
 
     def reportCmd(self, command, value=None, uom=None):
         message = {
