@@ -257,7 +257,8 @@ __getNodes()__ Returns your list of nodes. The interface will attempt to wrap
 the list of nodes from Polyglot with your custom classes. But this can fail
 if your custom class needs additional parameters when creating the class
 object. Your node server should call addNode() to make sure the objects on
-this list are your custom class objects.
+this list are your custom class objects.  Note that the behavior is undefined
+if you try to modify the list while iterating it.
 
 __getNode(address)__ Returns a single node.
 
