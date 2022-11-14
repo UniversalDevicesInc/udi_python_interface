@@ -414,7 +414,16 @@ class Interface(object):
                 elif key == 'setLogLevelList':
                     LOGGER.info('setLogList response {}'.format(parsed_msg[key]))
                 elif key == 'renamenode':
+                    # [{'address': 'addr_0001', 'name': 'today', 'success': True}]
                     LOGGER.info('renamenode response {}'.format(parsed_msg[key]))
+                    for resp in parsed_msg[key]:
+                        try:
+                            if resp['success']:
+                                addr = resp['address']
+                                self.nodes_internal[addr].name = resp['name']
+                        except Exception as error:
+                            LOGGER.error('Failed to update internal nodelist: {} :: {}'.format(resp, error))
+
                 else:
                     LOGGER.error(
                         'Invalid command received in message from PG3: \'{}\' {}'.format(key, parsed_msg[key]))
@@ -985,9 +994,14 @@ class Interface(object):
 
         :param node: Dictionary of node settings. Keys: address, name, node_def_id, primary, and drivers are required.
         """
-        if node.address in self._nodes and self._nodes[node.address]['name'] != node.name:
-            LOGGER.warning("addNode(): Cannot be used to change the node's name")
-            node.name = self._nodes[node.address]['name']
+        if node.address in self.nodes_internal:
+            if self.nodes_internal[node.address].name != node.name:
+                LOGGER.warning("addNode(): Cannot be used to change the node's name from {} to {}".format(self.nodes_internal[node.address].name, node.name))
+                node.name = self.nodes_internal[node.address].name
+        else:
+            if node.address in self._nodes and self._nodes[node.address]['name'] != node.name:
+                LOGGER.warning("addNode(): Cannot be used to change the node's name from {} to {}".format(self._nodes[node.address]['name'], node.name))
+                node.name = self._nodes[node.address]['name']
 
         LOGGER.info('Adding node {}({}) [{}]'.format(node.name, node.address, node.private))
         message = {
@@ -1124,17 +1138,22 @@ class Interface(object):
 
     def renameNode(self, address, newname):
         """
-        Rename a node from the Node Server
+        Rename a node from the Node Server.
         """
-        LOGGER.info('Renaming node {}'.format(address))
-        message = {
+        if address in self.nodes_internal:
+            LOGGER.info('Renaming node {}'.format(address))
+            message = {
                 'renamenode': [{
                     'address': address,
                     'name': newname
                     }]
-        }
+            }
 
-        self.send(message, 'command')
+            self.send(message, 'command')
+            self.nodes_internal[address].name = newname
+        else:
+            LOGGER.error('renameNode: Node {} doesn\'t exist'.format(address))
+
 
     def delNode(self, address):
         """
