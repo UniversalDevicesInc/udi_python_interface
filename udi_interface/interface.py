@@ -554,7 +554,7 @@ class Interface(object):
             and the profile_version for checkProfile().
             """
             LOGGER.warning('get_server_data: failed to read file {0}: {1}'.format(
-                Interface.SERVER_JSON_FILE_NAME, err), exc_info=True)
+                Interface.SERVER_JSON_FILE_NAME, err), exc_info=False)
             return
 
         # Get the version info
@@ -988,21 +988,12 @@ class Interface(object):
         """ Tells you if this nodeserver and Polyglot are connected via MQTT """
         return self.connected
 
-    def addNode(self, node, conn_status=None):
+    def addNode(self, node, conn_status=None, rename=False):
         """
         Add a node to the NodeServer
 
         :param node: Dictionary of node settings. Keys: address, name, node_def_id, primary, and drivers are required.
         """
-        if node.address in self.nodes_internal:
-            if self.nodes_internal[node.address].name != node.name:
-                LOGGER.warning("addNode(): Cannot be used to change the node's name from {} to {}".format(self.nodes_internal[node.address].name, node.name))
-                node.name = self.nodes_internal[node.address].name
-        else:
-            if node.address in self._nodes and self._nodes[node.address]['name'] != node.name:
-                LOGGER.warning("addNode(): Cannot be used to change the node's name from {} to {}".format(self._nodes[node.address]['name'], node.name))
-                node.name = self._nodes[node.address]['name']
-
         LOGGER.info('Adding node {}({}) [{}]'.format(node.name, node.address, node.private))
         message = {
             'addnode': [{
@@ -1012,7 +1003,8 @@ class Interface(object):
                 'primaryNode': node.primary,
                 'drivers': node.drivers,
                 'hint': node.hint,
-                'private': node.private
+                'private': node.private,
+                'rename': rename
             }]
         }
         self.send(message, 'command')
@@ -1139,6 +1131,7 @@ class Interface(object):
     def renameNode(self, address, newname):
         """
         Rename a node from the Node Server.
+          Can we do this if the node is not on the internal node list?
         """
         if address in self.nodes_internal:
             LOGGER.info('Renaming node {}'.format(address))
