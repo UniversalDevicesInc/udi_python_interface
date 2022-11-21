@@ -489,7 +489,7 @@ class Interface(object):
         LOGGER.info('Connecting to MQTT... {}:{}'.format(
             self._server, self._port))
 
-        self.username = self.id
+        self.username = self.id.replace(':', '')
 
         # Load the client SSL certificate.  What if this fails?
         if self.pg3init['secure'] == 1:
@@ -502,9 +502,9 @@ class Interface(object):
             if exists(cert) and exists(key):
                 LOGGER.info('Using SSL certs: {} {}'.format(cert, key))
                 self.sslContext.load_cert_chain(cert, key)
-                self.username = self.id.replace(':', '')
                 self.using_mosquitto = True
             else:
+                self.username = self.id
                 self.using_mosquitto = False
 
             self._mqttc.tls_set_context(self.sslContext)
