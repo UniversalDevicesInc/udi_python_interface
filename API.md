@@ -237,7 +237,7 @@ __addNode(node, conn_status = None, rename = False)__ Adds a new node to Polyglo
 node using your custom class, which you then pass to addNode. Return value
 is the node passed in.  
 
-If conn\_status is set to a driver string, this node and the driver specified will be used by PG3 to represent the connection status (0 = disconnected, 1 = connected, 2 = failed).  By default, conn\_status is None. When the node server connects via MQTT, PG3 will send a value of 1 to the ISY/IoP for that node/driver.  When PG3 stops the node server it will send a value of 0 to the ISY/IoP for that node/driver.  If the MQTT connection drops for any other reason, PG3 will send a value of 2 to the ISY/IoP for that node/driver.
+If conn\_status is set to a driver string, this node and the driver specified will be used by PG3 to represent the connection status (0 = disconnected, 1 = connected, 2 = failed).  By default, conn\_status is None. When the node server connects via MQTT, PG3 will send a value of 1 to the ISY/IoP for that node/driver.  When PG3 stops the node server it will send a value of 0 to the ISY/IoP for that node/driver.  If the MQTT connection drops for any other reason, PG3 will send a value of 2 to the ISY/IoP for that node/driver. Node server should use uom 25 to display status correctly.
 
 If rename is set to True, addNode will attempt to rename the node on the ISY and in the PG3 database to match the name specified in node.  When rename is set to False, the name of the node on the ISY and in PG3's database record are unchanged. 
 
@@ -251,7 +251,6 @@ Notes:
  a list of nodes available in the onConfig handler. However, you should
  still call __addNode()__ for each node to replace the generic node object
  with your custom node class object.
-```
 
 __getConfig()__ Returns a copy of the last config received.
 
