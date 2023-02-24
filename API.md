@@ -221,7 +221,7 @@ the Custom class API.
 
 #### The Interface class methods
 
-__start(version="x.x.x")__, to initiate the MQTT connection and start communicating with Polyglot. the version is passed when requesting configuration from PG3. By default, the version string will be read from the server.JSON file.
+__start({"version":"x.x.x", "requestId":[True|False]})__, to initiate the MQTT connection and start communicating with Polyglot. Version and feature support options can set using the optional dictionary parameter. By default, if no parameter is included, the version string will be read from the server.JSON file and features will default to disabled.  For backwards compatibily passing just the version string is also supported.
 
 __stop()__, to stop the MQTT connection.  This will be automatically called if Polyglot sends a stop command and the node server has not subscribed to the STOP event.  If the node server has subscribed to the STOP event, it is the node server's responsibility to call the interface.stop() method.
 
