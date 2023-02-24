@@ -246,6 +246,7 @@ class Interface(object):
         self.custom_params_docs_file_sent = False
         self.custom_params_pending_docs = ''
         self._levelsList = []
+        self.ns_config = {'version':'', 'requestId':False}
 
         """ persistent data storage for Interface """
         self._ifaceData = Custom(self, 'idata')  # Interface data
@@ -872,11 +873,23 @@ class Interface(object):
             except ValueError as e:
                 LOGGER.error('Failure trying to load {} data'.format(item.get('key')))
         elif key == 'command':
+            # FIXME: Does this need to handle requestId too?
             if item['address'] in self.nodes_internal:
                 try:
                     # FIXME: should we run this in a thread? it's bad if the
                     # node server blocks here.
                     self.nodes_internal[item['address']].runCmd(item)
+
+                    if self.ns_config['requestId'] and 'requestId' in item:
+                        LOGGER.debug('sending command report for {}'.format(item))
+                        message = {
+                            'report': [{
+                            'address': item['address'],
+                            'requestId': item['requestId'],
+                            'success': 'success' 
+                            }]
+                        }
+                        self.send(message, 'status')
                 except (Exception) as err:
                     LOGGER.error('_parseInput: failed {}.runCmd({}) {}'.format(
                         item['address'], item['cmd'], err), exc_info=True)
@@ -890,18 +903,47 @@ class Interface(object):
             pub.publish(self.POLL, None, 'shortPoll')
         elif key == 'longPoll':
             pub.publish(self.POLL, None, 'longPoll')
+
         elif key == 'query':
-            if item['address'] in self.nodes_internal:
+            if item['address'] == 'all':
+                # we need to call query on every node owned by the node server
+                for n in self.nodes_internal:
+                    n.query()
+            elif item['address'] in self.nodes_internal:
                 self.nodes_internal[item['address']].query()
-            elif item['address'] == 'all':
-                # TODO: FIXME: This isn't right now
-                self.query()
+
+            # if there's a request ID send back report
+            if self.ns_config['requestId'] and 'requestId' in item:
+                LOGGER.debug('sending query report for {}'.format(item))
+                message = {
+                    'report': [{
+                    'address': item['address'],
+                    'requestId': item['requestId'],
+                    'success': 'success' 
+                    }]
+                }
+                self.send(message, 'status')
+
         elif key == 'status':
-            if item['address'] in self.nodes_internal:
+            if item['address'] == 'all':
+                # we need to call query on every node owned by the node server
+                for n in self.nodes_internal:
+                    n.status()
+            elif item['address'] in self.nodes_internal:
                 self.nodes_internal[item['address']].status()
-            elif item['address'] == 'all':
-                # TODO: FIXME: This isn't right now
-                self.status()
+
+            # if there's a request ID send back report
+            if self.ns_config['requestId'] and 'requestId' in item:
+                LOGGER.debug('sending status report for {}'.format(item))
+                message = {
+                    'report': [{
+                    'address': item['address'],
+                    'requestId': item['requestId'],
+                    'success': 'success' 
+                    }]
+                }
+                self.send(message, 'status')
+
         elif key == 'stop':
             LOGGER.info('Received stop from Polyglot... Shutting Down.')
             pub.publish(self.STOP, None)
@@ -967,12 +1009,19 @@ class Interface(object):
 
         self._get_server_data()
 
-        # Tell PG3 our version
-        if version:
-            self.serverdata['version'] = version
-        else:
-            LOGGER.warning('No node server version specified. Using deprecated server.json version')
+        # process version and supported options from node server
+        if version != None:
+            if isinstance(version, dict):
+                if 'version' in version:
+                    self.ns_config['version'] = version['version']
+                else:
+                    LOGGER.warning('No node server version specified. Using deprecated server.json version')
+                    self.ns_config['version'] = self.serverdata['version']
 
+                if 'requestId' in version:
+                    self.ns_config['requestId'] = version['requestId']
+            elif isinstance(version, str):
+                self.ns_config['version'] = version
 
     def ready(self):
         """
@@ -980,7 +1029,7 @@ class Interface(object):
         asking PG3 for the info we need.
         """
         LOGGER.debug('Asking PG3 for config/getAll now')
-        self.send({'config': {"version":self.serverdata["version"]}}, 'system')
+        self.send({'config': self.ns_config}, 'system')
         self.send({'getAll': {}}, 'custom')
         self.send({'getNsInfo': {}},'system')
 
