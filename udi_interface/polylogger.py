@@ -12,7 +12,7 @@ class PolyLogger:
     LEVEL = logging.DEBUG
     ROTATION = 'midnight'
     WARN_LOGGER_NAME = 'py.warnings'
-    BACKUP_COUNT = 30
+    BACKUP_COUNT = 14
     FMT_STRING = '%(asctime)s %(threadName)-10s %(name)-18s %(levelname)-8s %(module)s:%(funcName)s: %(message)s'
     IS_ROOT = True
 
