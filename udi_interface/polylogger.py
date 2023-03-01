@@ -1,8 +1,11 @@
 
 import os
+import gzip
 import logging
 from logging import handlers as log_handlers
 import warnings
+import shutil
+
 
 class PolyLogger:
 
@@ -22,8 +25,12 @@ class PolyLogger:
         self.handler = log_handlers.TimedRotatingFileHandler(
             os.path.join(PolyLogger.LOGS_DIR, PolyLogger.LOG_FILE),
             when=PolyLogger.ROTATION,
+            interval=1,
             backupCount=PolyLogger.BACKUP_COUNT
         )
+        self.handler.rotator = self.rotator
+        self.handler.namer = self.namer
+
         logging.captureWarnings(True)
         self.set_log_format(PolyLogger.FMT_STRING)
         # Get our logger for everyone to use.
@@ -37,6 +44,15 @@ class PolyLogger:
         self.warnlog = logging.getLogger(PolyLogger.WARN_LOGGER_NAME)
         warnings.formatwarning = self.warning_on_one_line
         self.warnlog.addHandler(self.handler)
+
+    def namer(self, name):
+        return name + ".gz"
+
+    def rotator(self, source, dest):
+        with open(source, 'rb') as f_in:
+            with gzip.open(dest, "wb") as f_out:
+                shutil.copyfileobj(f_in, f_out)
+        os.remove(source)
 
     def set_log_format(self, fmt_string):
         # Format each log message like this
