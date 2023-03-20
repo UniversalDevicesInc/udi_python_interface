@@ -1022,6 +1022,9 @@ class Interface(object):
                     self.ns_config['requestId'] = version['requestId']
             elif isinstance(version, str):
                 self.ns_config['version'] = version
+        else:
+            LOGGER.warning('No node server version specified. Using deprecated server.json version')
+            self.ns_config['version'] = self.serverdata['version']
 
     def ready(self):
         """
