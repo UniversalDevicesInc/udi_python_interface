@@ -520,13 +520,11 @@ class Interface(object):
         done = False
         while not done:
             try:
-                self._mqttc.connect_async('{}'.format(
-                    self._server), int(self._port), 10)
+                self._mqttc.connect_async('{}'.format(self._server), int(self._port), 10)
                 self._mqttc.loop_forever()
                 done = True
             except ssl.SSLError as e:
-                LOGGER.error("MQTT Connection SSLError: {}, Will retry in a few seconds.".format(
-                    e), exc_info=True)
+                LOGGER.error("MQTT Connection SSLError: {}, Will retry in a few seconds.".format(e), exc_info=True)
                 time.sleep(3)
             except Exception as ex:
                 template = "An exception of type {0} occurred. Arguments:\n{1!r}"
@@ -603,22 +601,28 @@ class Interface(object):
         while not self.subscribed:
             if timeout == 0:
                 LOGGER.error('MQTT Send timeout :: {}.'.format(message))
-                return
+                return False
 
             LOGGER.warning('MQTT Send waiting on connection :: {}'.format(message))
             time.sleep(3)
             timeout -= 1
             
+        validTypes = ['status', 'command', 'system', 'custom']
+        if not type in validTypes:
+            warnings.warn('send: type not valid')
+            return False
+        topic = 'udi/pg3/ns/{}/{}'.format(type, self.id)
+
         try:
-            validTypes = ['status', 'command', 'system', 'custom']
-            if not type in validTypes:
-                warnings.warn('send: type not valid')
-                return False
-            topic = 'udi/pg3/ns/{}/{}'.format(type, self.id)
             LOGGER.debug('PUBLISHING {}'.format(message))
             self._mqttc.publish(topic, json.dumps(message), retain=False)
         except TypeError as err:
             LOGGER.error('MQTT Send Error: {}'.format(err), exc_info=True)
+            return False
+        except Exception as ex:
+            # Do we want to re-try on errors?
+            LOGGER.error('MQTT Publish Error: {}'.format(err), exc_info=True)
+            return False
 
     def _inConfig(self, config):
         LOGGER.debug('INCFG --> start processing config data')
