@@ -18,7 +18,7 @@ import sys
 import select
 import random
 import string
-from threading import Thread, current_thread, Event
+from threading import Thread, current_thread
 import time
 import netifaces
 import logging
@@ -221,10 +221,10 @@ class Interface(object):
         self.id = '{}_{}'.format(self.uuid, self.profileNum)
         self.topicInput = 'udi/pg3/ns/clients/{}'.format(self.id)
         self._threads = {}
-        self._threads['socket'] = Thread( target=self._startMqtt, name='Interface')
-        self._threads['input'] = Thread( target=self._parseInput, name='Command')
-        self._outThread = Thread(target=self._sendThread, name='Publish')
-        self._disconnectEvent = Event()
+        self._threads['socket'] = Thread(
+            target=self._startMqtt, name='Interface')
+        self._threads['input'] = Thread(
+            target=self._parseInput, name='Command')
         self._mqttc = mqtt.Client(self.id, True)
         self._mqttc.on_connect = self._connect
         self._mqttc.on_message = self._message
@@ -238,7 +238,6 @@ class Interface(object):
         self.nodes_internal = {}
         self.loop = None
         self.inQueue = queue.Queue()
-        self.outQueue = queue.Queue()
         self.isyVersion = None
         self._server = self.pg3init['mqttHost'] or 'localhost'
         self._port = self.pg3init['mqttPort'] or '1883'
@@ -318,8 +317,6 @@ class Interface(object):
                     self._mqttc.reconnect()
 
             self.subscribed = True
-            self._disconnectEvent.clear()
-            self._outThread.start()
         elif rc == 2: 
             # Incorrect identifier, nothing to do but exit
             LOGGER.error("MQTT Failed to connect, invalid identifier")
@@ -457,8 +454,6 @@ class Interface(object):
           5: Connection refused – not authorised.
         """
         self.connected = False
-        self._disconnectEvent.set()
-        self._outThread.join()
         if rc != 0:
             LOGGER.info(
                 "MQTT Unexpected disconnection. Trying reconnect. rc: {}".format(rc))
@@ -595,40 +590,10 @@ class Interface(object):
             self._mqttc.disconnect()
 
     def send(self, message, type):
-        self.outQueue.put([type, message])
-
-    def _sendThread(self):
-        while True:
-            if self._disconnectEvent.is_set():
-                LOGGER.error('Stopping send thread, mqtt connection disconnected')
-                break
-
-            msg = self.outQueue.get()
-            type = msg[0]
-            message = msg[1]
-            LOGGER.debug('_sendThread: Processing {} {}'.format(type, message))
-
-            try:
-                validTypes = ['status', 'command', 'system', 'custom']
-                if type in validTypes:
-                    topic = 'udi/pg3/ns/{}/{}'.format(type, self.id)
-                    LOGGER.debug('PUBLISHING {}'.format(message))
-                    self._mqttc.publish(topic, json.dumps(message), retain=False)
-                else:
-                    warnings.warn('send: type not valid')
-            except TypeError as err:
-                LOGGER.error('MQTT Send Error: {}'.format(err), exc_info=True)
-
-            self.outQueue.task_done()
-
-    def __send(self, message, type):
         """
         Formatted Message to send to Polyglot. Connection messages are sent
         automatically from this module so this method is used to send commands
         to/from Polyglot and formats it for consumption
-
-        deprecated as we're now using a queue to capture send requests and feed
-        them to the publish function when the mqtt is active.
         """
         if not isinstance(message, dict) and self.connected:
             warnings.warn('payload not a dictionary')
