@@ -165,6 +165,7 @@ The following event_id's are defined:
   * CONFIGDONE        - Subscribe to initial configuration data sent event
   * DISCOVER          - Subscribe to user initiated device discovery event  
   * OAUTH             - Subscribe to oauth token authentication data events 
+  * WEBHOOK           - Subscribe to webhook data events
 
 
 The data events will send the specific type of data, when that data changes in PG3.  For example, when the user changes a custom parameter, the CUSTOMPARAMS event will be published with the current (changed) custom parameter data.
@@ -212,6 +213,7 @@ Event handler prototypes:
  CONFIGDONE        def handler()
  DISCOVER          def handler()
  OAUTH             def handler(token_data)
+ WEBHOOK           def handler(webhook_data)
 ```
 #### The Interface class variables
 
@@ -360,6 +362,7 @@ __getValidAddress(address)__ Remove characters that are considered illegal for n
 * __setLogLevel__(level) send the specified level to Polyglot to store in its database. This level will then be sent back to the node server and set as the current log level.
 * __addLogLevel__(name, level, string\_name), Add a new log level to the logger and to the list displayed to the user.  'name' is the level name string (typically all upper case like DEBUG, WARNING, etc.) 'level' is the numeric value of new level, and string_name is the string to display to the user in the log level selector.  <BR> **NOTE** that this modifies the node server log level list which is stored as part of the node server configuration in PG3.  Thus you should only attempt to add items to the list after the config data has been recieved from PG3.  The best place to do this would be in a CONFIG event handler.  <BR>**NOTE2** that there is currently no way to remove or modify an item on the list other than replacing the whole list. See __setLogList()__ below.
 * __setLogList(list)__ Send the list of log levels for the frontend log level list selector. The 'list' is an array of __{display_name:LOGLEVEL}__ objects.  The user will be presented with the 'display_name' and when selected, it will set the log level to LOGLEVEL.  LOGLEVEL must be one of the valid levels supported by the logger or added via the addLevelName method in the logger. (DEPRECATED) <BR>Currently you have to pass all values including default ones to add yours:
+* __webhookResponse(response, status)__ Sends a response to the webhook request
  
 ```python
         poly.setLogList([
