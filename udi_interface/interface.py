@@ -64,6 +64,7 @@ class pub(object):
          'node_server_info',
          'discover',
          'oauth',
+         'webhook'
          ]
 
     topics = {}
@@ -90,7 +91,7 @@ class pub(object):
             pub.topics[pub.topic_list[topic]] = [[callback, address]]
         else:
             pub.topics[pub.topic_list[topic]].append([callback, address])
-        
+
         # Send backlog events if any
         for item in pub.topic_data:
             if item[0] == topic and (address == None or item[1] == address):
@@ -99,7 +100,7 @@ class pub(object):
 
     '''
     when we publish an event, we first push the event on to the backlog
-    queue so that any later subscribers will get the event when they 
+    queue so that any later subscribers will get the event when they
     subscribe.
     '''
     @staticmethod
@@ -112,9 +113,9 @@ class pub(object):
             for item in pub.topics[pub.topic_list[topic]]:
                 '''
                 With the exception of the START event, all others are
-                published with address == None.  
+                published with address == None.
 
-                For the START event we want to check the subscribers 
+                For the START event we want to check the subscribers
                 address filter value (item[1]) and compare it with the
                 address in the event.  For all other events we don't
                 really care.
@@ -190,6 +191,7 @@ class Interface(object):
     NSINFO            = 17
     DISCOVER          = 18
     OAUTH             = 19
+    WEBHOOK           = 20
 
     """
     Polyglot Interface Class
@@ -317,7 +319,7 @@ class Interface(object):
                     self._mqttc.reconnect()
 
             self.subscribed = True
-        elif rc == 2: 
+        elif rc == 2:
             # Incorrect identifier, nothing to do but exit
             LOGGER.error("MQTT Failed to connect, invalid identifier")
             os._exit(2)
@@ -333,7 +335,7 @@ class Interface(object):
         :param flags: The flags set on the connection.
         :param msg: Dictionary of MQTT received message. Uses: msg.topic, msg.qos, msg.payload
 
-        This should be quick and not block.  How do we solve that?  
+        This should be quick and not block.  How do we solve that?
           - Put message in queue and have thread pull from queue and process
              - This would keep the messages serialized
           - start a thread to process
@@ -346,7 +348,7 @@ class Interface(object):
                          'config', 'customdata', 'customparams', 'notices',
                          'getIsyInfo', 'getAll', 'setLogLevel',
                          'customtypeddata', 'customtypedparams', 'getNsInfo',
-                         'discover', 'nsdata', 'setController', 'oauth']
+                         'discover', 'nsdata', 'setController', 'oauth', 'webhook' ]
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
             #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
@@ -360,7 +362,7 @@ class Interface(object):
             # customparams      -- calls back into node server
             # customtypedparams -- calls back into node server
             # notices           -- calls back into node server
-            # getIsyInfo        -- calls back into 
+            # getIsyInfo        -- calls back into
 
             # installProfile    -- logging
             # customparamsdoc   -- logging
@@ -403,7 +405,7 @@ class Interface(object):
                             This should be the response to saving user defined
                             custom data.  Since the node server just wants
                             this saved, it doesn't make sense to publish this
-                            as an event.  But we could if there's a valid 
+                            as an event.  But we could if there's a valid
                             reason to do so.
                             '''
                 elif key == 'installprofile':
@@ -606,8 +608,8 @@ class Interface(object):
             LOGGER.warning('MQTT Send waiting on connection :: {}'.format(message))
             time.sleep(3)
             timeout -= 1
-            
-        validTypes = ['status', 'command', 'system', 'custom']
+
+        validTypes = ['status', 'command', 'system', 'custom', 'portal']
         if not type in validTypes:
             warnings.warn('send: type not valid')
             return False
@@ -661,7 +663,7 @@ class Interface(object):
                 """
                 if node['address'] in self.nodes_internal:
                     n = self.nodes_internal[node['address']]
-                    n.updateDrivers(node['drivers']) 
+                    n.updateDrivers(node['drivers'])
                     n.config = node
                     n.isPrimary = node['isPrimary']
                     n.timeAdded = node['timeAdded']
@@ -707,7 +709,7 @@ class Interface(object):
 
 
     """
-    This is a wrapper for the node start method.  We wrap this so 
+    This is a wrapper for the node start method.  We wrap this so
     that we know when the method has finished and we can then notify
     an watchers that the start method has finished.
     """
@@ -719,12 +721,12 @@ class Interface(object):
         pub.publish(self.STARTDONE, None, address)
 
     '''
-    the _parseInput loop pulls messages from the incoming queue and 
+    the _parseInput loop pulls messages from the incoming queue and
     processes them.  For messages that only generate events, those
     events are published using separate threads to prevent any node
-    server event handler from blocking this process.  However, if 
+    server event handler from blocking this process.  However, if
     other calls to the node server don't return, those will block
-    processing of messages which is not a good thing. 
+    processing of messages which is not a good thing.
 
     Is it possible to do each message processing in it's own thread?
     What kind of locking issues would we run into?  This would mainly
@@ -732,7 +734,7 @@ class Interface(object):
        while True:
           msg = self.inQueue.get()
               Thread(target=self._processMsg, args=[msg]).start()
-    
+
     Messages can be single {key:value} type messages or an array
     of [{key:value}...] messages.  Should process each message in
     the array separately too.
@@ -834,7 +836,7 @@ class Interface(object):
             """
             This is one of the first messages we get from Polyglot.
 
-            custom keys should include notices, customparams, 
+            custom keys should include notices, customparams,
             customtypedparams, customdata
             """
             try:
@@ -890,7 +892,7 @@ class Interface(object):
                             'report': [{
                             'address': item['address'],
                             'requestId': item['requestId'],
-                            'success': 'success' 
+                            'success': 'success'
                             }]
                         }
                         self.send(message, 'status')
@@ -923,7 +925,7 @@ class Interface(object):
                     'report': [{
                     'address': item['address'],
                     'requestId': item['requestId'],
-                    'success': 'success' 
+                    'success': 'success'
                     }]
                 }
                 self.send(message, 'status')
@@ -943,7 +945,7 @@ class Interface(object):
                     'report': [{
                     'address': item['address'],
                     'requestId': item['requestId'],
-                    'success': 'success' 
+                    'success': 'success'
                     }]
                 }
                 self.send(message, 'status')
@@ -962,9 +964,9 @@ class Interface(object):
                     NLOGGER.setLevel('DEBUG')
                     ILOGGER.setLevel('DEBUG')
                     self.currentLogLevel = 'DEBUG'
-                    
+
                 GLOBAL_LOGGER.setLevel(self.currentLogLevel)
-                
+
                 # FIXME: Testing setting level from dashboard
                 LOGGER.setLevel(self.currentLogLevel)
                 CLOGGER.setLevel(self.currentLogLevel)
@@ -978,6 +980,8 @@ class Interface(object):
                 LOGGER.error('Failed to set {}: {}'.format(key, err), exc_info=True)
         elif key == 'setController':
             LOGGER.debug('connection status node/driver update')
+        elif key == 'webhook':
+            pub.publish(self.WEBHOOK, None, item)
 
     def _handleResult(self, result):
         try:
@@ -985,7 +989,7 @@ class Interface(object):
                 """
                 We get here when Polyglot has finished adding the node
                 to the ISY and database (or verifying that the node
-                is correct in both).  
+                is correct in both).
 
                 Now's the time to run the node's start() method which
                 was configured by the node server using the onStart()
@@ -1066,7 +1070,7 @@ class Interface(object):
         self.send(message, 'command')
         self.nodes_internal[node.address] = node
 
-        # TODO: do we update self._nodes? 
+        # TODO: do we update self._nodes?
 
         if conn_status is not None:
             self.setController(node.address, conn_status)
@@ -1086,7 +1090,7 @@ class Interface(object):
     def db_getNodeDrivers(self, addr = None, init = False):
         """
         Returns a list of nodes or a list of drivers that were saved in the
-        database.  
+        database.
          If an address is specified, return the drivers for that node.
          If an array of addresses is specified, return the matching array of
            nodes.
@@ -1128,7 +1132,7 @@ class Interface(object):
 
     def getNodesFromDb(self, addr = None):
         return self.db_getNodeDrivers(addr)
-    
+
     def getNodeNameFromDb(self, addr):
         try:
             return self.getNodesFromDb([addr])[0]['name']
@@ -1148,7 +1152,7 @@ class Interface(object):
         rname = bytes(name, 'utf-8').decode('utf-8','ignore')
         # Remove <>`~!@#$%^&*(){}[]?/\;:"'` characters from name
         rname = re.sub(r"[<>`~!@#$%^&*(){}[\]?/\\;:\"']+", "", rname)
-        
+
         if rname != name:
             return False
         return True
@@ -1173,7 +1177,7 @@ class Interface(object):
 
     def getNode(self, address):
         """
-        Get Node by Address of existing nodes. 
+        Get Node by Address of existing nodes.
         """
         try:
             if address in self.nodes_internal:
@@ -1243,7 +1247,7 @@ class Interface(object):
 
     """ Deprecated and should be removed.  Keeping just for the description """
     def saveTypedParams(self, typedParams):
-        """ 
+        """
         Saves typed configuration parameters.
         Accepts list of objects with the followin properties
             name - used as a key when data is sent from UI
@@ -1369,7 +1373,7 @@ class Interface(object):
             LOGGER.info('check_profile: Updated needed: "{}" == "{}"'.format(
                 self.serverdata['profile_version'], cdata))
             update_profile = True
-        
+
         if update_profile:
             if build_profile:
                 LOGGER.info('Building Profile...')
@@ -1461,3 +1465,8 @@ class Interface(object):
 
     def runForever(self):
         self._threads['input'].join()
+
+    """ Node server method to return a response to a webhook. """
+    def webhookResponse(self, body='Success', status=200):
+        LOGGER.debug('Returning webhook response')
+        self.send({'webhook': { 'body': body, 'status': status } }, 'portal')
