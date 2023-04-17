@@ -426,6 +426,8 @@ class Interface(object):
                                 self.nodes_internal[addr].name = resp['name']
                         except Exception as error:
                             LOGGER.error('Failed to update internal nodelist: {} :: {}'.format(resp, error))
+                elif key == 'push':
+                    LOGGER.info('push response {}'.format(parsed_msg[key]))
 
                 else:
                     LOGGER.error(
@@ -1047,6 +1049,21 @@ class Interface(object):
     def isConnected(self):
         """ Tells you if this nodeserver and Polyglot are connected via MQTT """
         return self.connected
+
+    def push(self, title, notice, groupid=None, sound=None):
+        info = {}
+
+        info['title'] = title
+        info['body'] = notice
+        if groupid:
+            info['groupid'] = groupid
+        if sound:
+            info['sound'] = sound
+
+        message = {
+                'push': [info]
+        }
+        self.send(message, 'custom')
 
     def addNode(self, node, conn_status=None, rename=False):
         """
