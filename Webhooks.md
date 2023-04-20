@@ -16,9 +16,9 @@ and proceed with a reconfiguration of remote access.
 Please note that configuring remote access will reboot your eisy/polisy.
 
 ## Endpoint 
-If the webhook needs a response, the endpoint should be: https://my.isy.io/api/eisy/pg3/webhook/response/<uuid>/<slot>.
+If the webhook needs a response, the endpoint should be: https://my.isy.io/api/eisy/pg3/webhook/response/\<uuid\>/\<slot\>.
 
-If the webhook does not require a response (other than an HTTP 200), then you can use https://my.isy.io/api/eisy/pg3/webhook/noresponse/<uuid>/<slot>.
+If the webhook does not require a response (other than an HTTP 200), then you can use https://my.isy.io/api/eisy/pg3/webhook/noresponse/\<uuid\>/\<slot\>.
 
 Both endpoints supports all methods: GET, POST, PUT, DELETE, etc
 
