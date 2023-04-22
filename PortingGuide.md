@@ -4,7 +4,7 @@
          LOGGER = polyinterface.LOGGER becomes LOGGER = udi_interface.LOGGER
 
  * Instantiate the Interface class object
-   Parameter changes from a name to an array of classes.  Can be an empty arrary
+   Parameter changes from a name to an array of classes.  Can be an empty array
 
    ``` Python
    polyinterface.Interface() becomes udi_interface.Interface([])
@@ -27,7 +27,7 @@
  * Replace 'polyinterface' with 'udi_interface'
 
  * Parent class for your controller node is a Node class object. Previously,
-   the controller was based on a Controller class (superset of Node class)
+   the controller was based on a Controller class (super set of Node class)
 
    ``` Python
    class MyController(udi_interface.Node)
@@ -54,7 +54,7 @@
 
  * The interface module now has a generic data class.  This reflects changes in the Polyglot core to separate the various data types.
 
-   Create local data class objects for the datatypes you need to use
+   Create local data class objects for the data types you need to use
 
    ``` Python
        self.Parameters = Custom(polyglot, 'customparams')
@@ -69,7 +69,7 @@
 
  * The bottom of your controller (or main) node needs to register itself with the interface.
 
-   self.poly.ready() - This tells the interface that our node is initialized andwe've subscribed to the events we want.  The interface will now start processing data from Polyglot and publishing events.
+   self.poly.ready() - This tells the interface that our node is initialized and we've subscribed to the events we want.  The interface will now start processing data from Polyglot and publishing events.
    
    self.poly.addNode(self) - Register node with interface.  This will tell the node is ready to start.
 
@@ -96,7 +96,7 @@
    startup.  This can replace the check_params() method typically used in PG2
    node servers.
 
- * Internally, PG3 handles notices in the same maner as other other data types
+ * Internally, PG3 handles notices in the same manner as other other data types
    so that carries forward here.
 
    To display notices, add a notice to your Custom data store for notices.
@@ -105,7 +105,7 @@
    self.Notices['new notice'] = 'This is a new notice'
    ```
 
-   Setting a notice will cause it propogate to PG3 and then to the UI.
+   Setting a notice will cause it propagate to PG3 and then to the UI.
 
    Self.Notices.clear()  will remove all notices. See the API documentation for
    more information on what you can do with Notices.
@@ -123,12 +123,12 @@
 
  * Profile files are handled mostly the same.  The one difference is that
    the PG3 UI now has a button to send the current files to the ISY so you
-   do not need to implement this functionallity in your node server.
+   do not need to implement this functionality in your node server.
 
 # Data Nodes
 
  * Very little should change in your data nodes.  You might have to add
-   subscriptions to events if you need your data to recieve specific events.
+   subscriptions to events if you need your data to receive specific events.
    I.E. rather than call your node's poll method from the controller, the
    nodes themselves can subscribe to the POLL event.
 
