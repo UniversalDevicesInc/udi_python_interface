@@ -1,6 +1,4 @@
-# UDI Polyglot v3 Python Interface Module Releases
-
-We will now be doing official releases of this interface.
+# UDI PG3 Python Interface Module Releases
 
 ## Version Numbering
 
@@ -17,8 +15,10 @@ We will be following methods defined [Managing releases in a repository
 https://pypi.org
 https://test.pypi.org
 
-Created github user udi-pg-dev to email pg-dev@universal-devices.com
-Created pypi and test pypi users udi-pg-dev
+Created github user udi-pg-dev to email pg-dev@universal-devices.com (Still valid?)
+Created pypi and test pypi users udi-pg-dev (Still valid?)
+Created pypi user Universal-Devices with email universal.devices.portal.dev@gmail.com
+
 
 Documentation
 https://realpython.com/documenting-python-code/
@@ -26,11 +26,6 @@ Use NumPy/SciPy Docstrings
 
 ## Generating a Release
 
-The releases are handled by Github actions
-- Go to [udi-pyhton-interface Releases](https://github.com/UniversalDevicesInc/udi-python-interface/releases)
-- Click 'Draft a new release'
-- Set Tag version to the relese with a v prefix, e.g. v2.1.0
-- Target: should always be master
-- Set Release title: Version 2.1.0
-- Describe the release.  Currently copy the info added to CHANGELOG.md
-- This is a pre-release is not yet tested.
+To make a release
+- make build
+- make publish
