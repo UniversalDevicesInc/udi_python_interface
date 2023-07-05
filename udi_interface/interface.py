@@ -460,8 +460,9 @@ class Interface(object):
         self.connected = False
         if rc != 0:
             LOGGER.info(
-                "MQTT Unexpected disconnection. Trying reconnect. rc: {}".format(rc))
+                "MQTT Unexpected disconnection. Trying reconnect in 10 seconds. rc: {}".format(rc))
             try:
+                time.sleep(10)
                 self._mqttc.reconnect()
             except Exception as ex:
                 template = "An exception of type {0} occured. Arguments:\n{1!r}"
