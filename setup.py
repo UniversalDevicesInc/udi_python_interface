@@ -21,7 +21,7 @@ setup(name='udi_interface',
         "requests",
         "pyisy >2.0, != 2.1.5, <3.0.0"
     ],
-    python_requires='>3.6.*',
+    python_requires='>3.6',
     zip_safe=False,
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
