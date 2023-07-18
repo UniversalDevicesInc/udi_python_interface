@@ -460,15 +460,20 @@ class Interface(object):
         self.connected = False
         if rc != 0:
             LOGGER.info(
-                "MQTT Unexpected disconnection. Trying reconnect in 10 seconds. rc: {}".format(rc))
-            try:
-                time.sleep(10)
-                self._mqttc.reconnect()
-            except Exception as ex:
-                template = "An exception of type {0} occured. Arguments:\n{1!r}"
-                message = template.format(type(ex).__name__, ex.args)
-                LOGGER.exception("MQTT Connection error: " + message)
-                os._exit(2)
+                "MQTT Unexpected disconnection. Trying to reconnect in 10 seconds. rc: {}".format(rc))
+
+            done = False
+            while not done:
+                try:
+                    time.sleep(10)
+                    self._mqttc.reconnect()
+                    done = True
+                except Exception as ex:
+                    template = "An exception of type {0} occurred. Arguments:\n{1!r}"
+                    message = template.format(type(ex).__name__, ex.args)
+                    LOGGER.exception("MQTT Reconnection error: {}".format(
+                        message), exc_info=True)
+            LOGGER.info("MQTT: Reconnect successful")
         else:
             LOGGER.info("MQTT Graceful disconnection.")
 
@@ -499,21 +504,31 @@ class Interface(object):
 
         # Load the client SSL certificate.  What if this fails?
         if self.pg3init['secure'] == 1:
-            self.sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
-            self.sslContext.check_hostname = False
+            # self.sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+            # self.sslContext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            # self.sslContext.check_hostname = False
             cert = self.username + ".cert"
             key  = self.username + ".key"
 
             # only if certs exist!
             if exists(cert) and exists(key):
                 LOGGER.info('Using SSL certs: {} {}'.format(cert, key))
+                # self.sslContext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+                # self.sslContext.check_hostname = False
+
+                self.sslContext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
                 self.sslContext.load_cert_chain(cert, key)
+                self._mqttc.tls_set_context(self.sslContext)
+                self._mqttc.tls_insecure_set(True)
                 self.using_mosquitto = True
             else:
                 self.username = self.id
                 self.using_mosquitto = False
 
-            self._mqttc.tls_set_context(self.sslContext)
+                # Legacy method. Used by PG3?
+                self.sslContext = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+                self.sslContext.check_hostname = False
+                self._mqttc.tls_set_context(self.sslContext)
 
         self._mqttc.username_pw_set(self.username, self.pg3init['token'])
 
