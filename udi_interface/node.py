@@ -64,7 +64,7 @@ class Node(object):
                         d['uom'] = drv['uom']
         except Exception as e:
             NLOGGER.error(f'Failed to update driver default values for node {address} of drv={drv}: {e}',exc_info=True)
-                
+
     def getDriver(self, driver):
         """
         Get the driver value
@@ -76,7 +76,7 @@ class Node(object):
 
         return None
 
-    def setDriver(self, driver, value, report=True, force=False, uom=None):
+    def setDriver(self, driver, value, report=True, force=False, uom=None, text=None):
         """ Update the driver's value and when report=True, update the ISY """
         changed = False
 
@@ -91,6 +91,10 @@ class Node(object):
 
         if self.drivers[drv]['value'] != value:
             self.drivers[drv]['value'] = value
+            changed = True
+
+        if text != None and self.drivers[drv].get('text') != text:
+            self.drivers[drv]['text'] = text
             changed = True
 
         if report and (changed or force):
@@ -108,7 +112,8 @@ class Node(object):
                     'address': self.address,
                     'driver': self.drivers[drv]['driver'],
                     'value': str(self.drivers[drv]['value']),
-                    'uom': self.drivers[drv]['uom']
+                    'uom': self.drivers[drv]['uom'],
+                    'text': self.drivers[drv].get('text')
                 }]
             }
             NLOGGER.debug('Updating value to {}'.format(self.drivers[drv]['value']))
@@ -125,7 +130,8 @@ class Node(object):
                     'address': self.address,
                     'driver': driver['driver'],
                     'value': driver['value'],
-                    'uom': driver['uom']
+                    'uom': driver['uom'],
+                    'text': driver.get('text')
                 })
         self.poly.send(message, 'status')
 

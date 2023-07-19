@@ -72,6 +72,11 @@ class MyNode(udi_interface.Node):
 	def self.onDOF(self, cmd=None):
 		LOGGER.info('DOF ({}): {}'.format(cmd.address, cmd.command))
 		setDriver('ST', 0)
+
+	def self.setDriverText(self, value, text):
+		LOGGER.info('Setting the driver with value ({}) and text: {}'.format(value, text))
+		# Please note that to trigger an event, the value has to change from it's previous value.
+		setDriver('ST', value, text=text)
 ```
 
 #### The Node class has these standard properties:  
@@ -96,7 +101,7 @@ The list of drivers defines the node statuses, the uom, and contains the value.
 #### The Node class has these standard methods:
 
 * __self.getDriver(driver)__ to get the driver value.  
-* __self.setDriver(driver, value, report=true, forceReport=false, uom=null)__ to set a driver to a value (example set ST to 100).  
+* __self.setDriver(driver, value, report=true, forceReport=false, uom=None, text=None)__ to set a driver to a value (example set ST to 100).  
 * __self.reportDriver(driver, forceReport)__ to send existing driver value to ISY.  
 * __self.reportDrivers()__ to send existing driver values to ISY.  
 * __self.query()__ which is called when we get a query request (Override this to fetch live data).  
