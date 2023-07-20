@@ -60,7 +60,7 @@ class MyNode(udi_interface.Node):
 	# Status that this node has. Should match the 'sts' section
 	# of the nodedef file.
 	drivers = [
-		{'driver: 'ST', 'value': 1, 'uom': 51},
+		{'driver: 'ST', 'value': 1, 'uom': 51, 'name': 'Driver name displayed in PG3'},
 		]
 
 	def self.onDON(self, cmd=None):
@@ -69,14 +69,12 @@ class MyNode(udi_interface.Node):
 		# setDriver accepts string or number
 		setDriver('ST', cmd.command)
 
+		# We can also set the "text" related to the value. Useful for UOM 150 and others which need to carry text info 
+		#setDriver('ST', cmd.command, text='Driver text')
+
 	def self.onDOF(self, cmd=None):
 		LOGGER.info('DOF ({}): {}'.format(cmd.address, cmd.command))
 		setDriver('ST', 0)
-
-	def self.setDriverText(self, value, text):
-		LOGGER.info('Setting the driver with value ({}) and text: {}'.format(value, text))
-		# Please note that to trigger an event, the value has to change from it's previous value.
-		setDriver('ST', value, text=text)
 ```
 
 #### The Node class has these standard properties:  
