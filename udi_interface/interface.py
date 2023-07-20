@@ -2,12 +2,10 @@ import json
 import base64
 import os
 import warnings
-from copy import deepcopy
 import ssl
-import logging
 import markdown2
 import os
-from os.path import join, expanduser, exists
+from os.path import exists
 import paho.mqtt.client as mqtt
 try:
     import queue
@@ -15,16 +13,13 @@ except ImportError:
     import Queue as queue
 import re
 import sys
-import select
-import random
-import string
 from threading import Thread, current_thread
 import time
 import netifaces
 import logging
-from .node import Node, NLOGGER
+from .node import NLOGGER
 from .custom import Custom, CLOGGER
-from .isy import ISY, ILOGGER
+from .isy import ILOGGER
 from .polylogger import LOGGER
 
 GLOBAL_LOGGER = LOGGER
