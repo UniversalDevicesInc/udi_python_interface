@@ -509,14 +509,13 @@ class Interface(object):
             # self.sslContext.check_hostname = False
             cert = self.username + ".cert"
             key  = self.username + ".key"
+            cafilename = '/usr/local/etc/ssl/certs/ud.ca.cert'
+            cafile = cafilename if exists(cafilename) else None
 
             # only if certs exist!
             if exists(cert) and exists(key):
-                LOGGER.info('Using SSL certs: {} {}'.format(cert, key))
-                # self.sslContext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
-                # self.sslContext.check_hostname = False
-
-                self.sslContext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+                LOGGER.info('Using SSL cert: {} key: {} ca: {}'.format(cert, key, cafile))
+                self.sslContext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cafile)
                 self.sslContext.load_cert_chain(cert, key)
                 self._mqttc.tls_set_context(self.sslContext)
                 self._mqttc.tls_insecure_set(True)
@@ -1498,3 +1497,13 @@ class Interface(object):
     def webhookResponse(self, body='Success', status=200):
         LOGGER.debug('Returning webhook response')
         self.send({'webhook': { 'body': body, 'status': status } }, 'portal')
+
+    def bonjour(self, type, subtype, protocol):
+        message = {
+            'bonjour': [{
+                'type': type,
+                'subtype': subtype,
+                'protocol': protocol
+            }]
+        }
+        self.send(message, 'command')
