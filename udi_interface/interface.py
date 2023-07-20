@@ -640,7 +640,7 @@ class Interface(object):
             return False
         except Exception as ex:
             # Do we want to re-try on errors?
-            LOGGER.error('MQTT Publish Error: {}'.format(err), exc_info=True)
+            LOGGER.error('MQTT Publish Error: {}'.format(ex), exc_info=True)
             return False
 
     def _inConfig(self, config):
