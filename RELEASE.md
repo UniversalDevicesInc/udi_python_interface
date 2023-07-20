@@ -2,7 +2,7 @@
 
 ## Version Numbering
 
-We will be using [Semantic Versioning](https://semver.org/) Which is MAJOR.MINOR.PATCH
+We are using [Semantic Versioning](https://semver.org/) Which is MAJOR.MINOR.PATCH
 - MAJOR - Will follow major Polyglot releases, current 2
 - MINOR - Any release that adds functionality
 - PATCH - Only fixes problems, no functional changes
@@ -27,5 +27,6 @@ Use NumPy/SciPy Docstrings
 ## Generating a Release
 
 To make a release
+- Set the version in __init__.py
 - make build
 - make publish
