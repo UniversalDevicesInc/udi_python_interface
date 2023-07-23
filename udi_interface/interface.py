@@ -59,7 +59,8 @@ class pub(object):
          'node_server_info',
          'discover',
          'oauth',
-         'webhook'
+         'webhook',
+         'bonjour'
          ]
 
     topics = {}
@@ -187,6 +188,7 @@ class Interface(object):
     DISCOVER          = 18
     OAUTH             = 19
     WEBHOOK           = 20
+    BONJOUR           = 21
 
     """
     Polyglot Interface Class
@@ -343,7 +345,7 @@ class Interface(object):
                          'config', 'customdata', 'customparams', 'notices',
                          'getIsyInfo', 'getAll', 'setLogLevel',
                          'customtypeddata', 'customtypedparams', 'getNsInfo',
-                         'discover', 'nsdata', 'setController', 'oauth', 'webhook' ]
+                         'discover', 'nsdata', 'setController', 'oauth', 'webhook', 'bonjour' ]
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
             #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
@@ -994,6 +996,8 @@ class Interface(object):
             LOGGER.debug('connection status node/driver update')
         elif key == 'webhook':
             pub.publish(self.WEBHOOK, None, item)
+        elif key == 'bonjour':
+            pub.publish(self.BONJOUR, None, item)
 
     def _handleResult(self, result):
         try:
@@ -1493,11 +1497,22 @@ class Interface(object):
         LOGGER.debug('Returning webhook response')
         self.send({'webhook': { 'body': body, 'status': status } }, 'portal')
 
-    def bonjour(self, type, subtype, protocol):
+    """ Node server method to initiate a bonjour query on the network. Response is returned as a polyglot.BONJOUR event  """
+    def bonjour(self, type, subtypes, protocol):
+
+        if type is not None and not isinstance(type, str):
+            raise TypeError('type must be a string')
+
+        if subtypes is not None and not isinstance(subtypes, list):
+            raise TypeError('subtypes must be an array')
+
+        if protocol not in ['tcp', 'udp', None]:
+            raise ValueError('protocol can be either "tcp", "udp"')
+
         message = {
             'bonjour': [{
                 'type': type,
-                'subtype': subtype,
+                'subtypes': subtypes,
                 'protocol': protocol
             }]
         }
