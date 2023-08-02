@@ -449,7 +449,9 @@ def parameterHandler(self, custom_params):
 ### The ISY class
 The ISY class is used to communicate directly with the ISY.  When you 
 create an ISY class object in your node server, the class will take care
-of authenticating and connecting to the ISY for you.  The class has two
+of authenticating and connecting to the ISY for you.
+
+The class has two
 methods available:
 
 * __ISY.cmd(rest\_command)__  Send a rest command to the ISY and get a response.  
@@ -472,6 +474,19 @@ pyisy = isy.pyisy()
 for name, node in pyisy.nodes:
     LOGGER.info('ISY node {} has status {}'.format(name, node.status))
 ```
+
+Please note that your Node Server must have "Require ISY access" checked, and the owner
+must have checked "Allow ISY Access by Node Server".
+
+The Node Server must also have received credentials from PG3. You can check for the "valid" 
+and "unauthorized" flags.
+
+When credentials have been received, valid will be True.
+If we have received the information from ISY, but owner have allowed access, unauthorized will be True.
+
+When calling isy.cmd() or isy.pyisy(), you may get these errors:
+PermissionError: If owner did not allow ISY access
+RuntimeError: If we have not yet received ISY credentials from PG3
 
 ### Creating nodes
 

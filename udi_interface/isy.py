@@ -13,6 +13,7 @@ class ISY(object):
     def __init__(self, poly):
         self.poly = poly
         self.valid = False
+        self.unauthorized = False
         self._isy_ip = ''
         self._isy_port = 80
         self._isy_user = ''
@@ -31,19 +32,25 @@ class ISY(object):
 
 
     def _info(self, info):
-        ILOGGER.debug('ISYINFO: Got ISY data from PG3')
-        self._isy_ip = info['isy_ip_address']
-        self._isy_user = info['isy_username']
-        self._isy_pass = info['isy_password']
-        self._isy_port = info['isy_port']
-        if info['isy_https'] == 1:
-            self._isy_https = True
-        self.valid = True
-
+        if info is not None:
+            ILOGGER.info('ISYINFO: Got ISY data from PG3')
+            self._isy_ip = info['isy_ip_address']
+            self._isy_user = info['isy_username']
+            self._isy_pass = info['isy_password']
+            self._isy_port = info['isy_port']
+            if info['isy_https'] == 1:
+                self._isy_https = True
+            self.valid = True
+        else:
+            self.unauthorized = True
+            ILOGGER.error('Access to ISY is not authorized. To allow node server to access ISY directly, go to the node server configuration and click Allow Unnestricted ISY Access by Node Server')
 
     # Send command to ISY and get response
     def cmd(self, command):
         results = None
+
+        if self.unauthorized:
+            raise PermissionError('Access to ISY is not authorized')
 
         if not self.valid:
             raise RuntimeError('ISY info not available')
@@ -63,6 +70,12 @@ class ISY(object):
         return results
 
     def pyisy(self):
+        if self.unauthorized:
+            raise PermissionError('Access to ISY is not authorized')
+
+        if not self.valid:
+            raise RuntimeError('ISY info not available')
+
         try:
             isy = PYISY.ISY(address = self._isy_ip,
                             port = self._isy_port,

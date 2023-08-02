@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.2.0
+- Handle cases where owner did not authorize access to ISY
+
 ### 3.1.0
 - Add support for updating text on driver
 - Connection to MQTT with the self-signed ca certificate
