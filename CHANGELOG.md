@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.2.1
+- Added diagnostic information on startup
+
 ### 3.2.0
 - Handle cases where owner did not authorize access to ISY
 

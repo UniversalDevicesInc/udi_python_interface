@@ -1,3 +1,5 @@
+
+from .polylogger import LOGGER
 import json
 import base64
 import os
@@ -6,7 +8,6 @@ import ssl
 import markdown2
 import os
 from os.path import exists
-import paho.mqtt.client as mqtt
 try:
     import queue
 except ImportError:
@@ -17,10 +18,13 @@ from threading import Thread, current_thread
 import time
 import netifaces
 import logging
+
+LOGGER.info('Loading MQTT module')
+import paho.mqtt.client as mqtt
+LOGGER.info('MQTT module loaded')
 from .node import NLOGGER
 from .custom import Custom, CLOGGER
 from .isy import ILOGGER
-from .polylogger import LOGGER
 
 GLOBAL_LOGGER = LOGGER
 DEBUG = False

@@ -555,5 +555,6 @@ The logs are located in __<home>/.polyglot/nodeservers/<your node server>/logs/d
 
 To watch your NodeServer logs:  
 ```
-tail -f ~/.polyglot/nodeservers/<NodeServer>/logs/debug.log
+tail -f /var/polyglot/pg3/ns/<NodeServer>/logs/debug.log
 ```
+If the NodeServer does not start, and nothing shows up in the logs, look for a file named crash.log in your NodeServer folder. 
