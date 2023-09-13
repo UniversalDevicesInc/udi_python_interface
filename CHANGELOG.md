@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.2.2
+- Fixed logging of node server username
+
 ### 3.2.1
 - Added diagnostic information on startup
 

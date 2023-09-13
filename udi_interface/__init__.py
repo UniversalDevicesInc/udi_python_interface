@@ -1,4 +1,4 @@
-__version__ = '3.2.1'
+__version__ = '3.2.2'
 __description__ = 'UDI Python Interface for Polyglot version 3'
 __url__ = 'https://github.com/UniversalDevicesInc/udi_python_interface'
 __author__ = 'Universal Devices Inc.'
@@ -14,7 +14,7 @@ try:
     info = getEnvironmentInfo()
     LOGGER.info('User={}'.format(info.get('user')))
     LOGGER.info('Home={}'.format(info.get('home')))
-    LOGGER.info('Path={}'.format(info.get('cwd')))
+    LOGGER.info('Node Server Path={}'.format(info.get('cwd')))
     LOGGER.info('PG3INIT={}'.format(info.get('pg3init')))
 
     LOGGER.info('Loading interface module')

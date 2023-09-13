@@ -3,13 +3,9 @@ from datetime import datetime
 
 def getEnvironmentInfo():
 	cwd = os.getcwd()
-
-	init = os.getenv('PG3INIT')
-	pg3init = init if init is not None else "Not set"
-
-	user = os.getlogin()
-
+	user = os.environ.get('USER')
 	home = os.path.expanduser('~')
+	pg3init = os.getenv('PG3INIT') or "Not set"
 
 	return {
 		'cwd': cwd,
