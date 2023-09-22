@@ -736,7 +736,7 @@ class Interface(object):
         pub.publish(self.START, address)
 
         # start has finished. Do we know which one this is?
-        pub.publish(self.STARTDONE, None, address)
+        pub.publish(self.STARTDONE, address, address)
 
     '''
     the _parseInput loop pulls messages from the incoming queue and
