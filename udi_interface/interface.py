@@ -41,35 +41,41 @@ usage:
 """
 class pub(object):
 
-    # topic is index into this list
+    # List of available topics for publish/subscribe.  The
+    # index into the array and the ID are currently interchangable
+    # and we don't really use the ID.
+    #
+    # [topic id, topic name, last event data]
     topic_list = [
-         'config',
-         'start',
-         'start_done',
-         'stop',
-         'delete',
-         'add_node_done',
-         'custom_data',
-         'custom_params',
-         'custom_typed_params',
-         'custom_ns_data',
-         'notices',
-         'poll',
-         'log_level',
-         'isy_info',
-         'config_done',
-         'custom_params_doc',
-         'custom_typed_data',
-         'node_server_info',
-         'discover',
-         'oauth',
-         'webhook',
-         'bonjour'
+         [0, 'config', None],
+         [1, 'start', None],
+         [2, 'start_done', None],
+         [3, 'stop', None],
+         [4, 'delete', None],
+         [5, 'add_node_done', None],
+         [6, 'custom_data', None],
+         [7, 'custom_params', None],
+         [8, 'custom_typed_params', None],
+         [9, 'custom_ns_data', None],
+         [10, 'notices', None],
+         [11, 'poll', None],
+         [12, 'log_level', None],
+         [13, 'isy_info', None],
+         [14, 'config_done', None],
+         [15, 'custom_params_doc', None],
+         [16, 'custom_typed_data', None],
+         [17, 'node_server_info', None],
+         [18, 'discover', None],
+         [19, 'oauth', None],
+         [20, 'webhook', None],
+         [21, 'bonjour', None]
          ]
 
+    # topics is a set of key/value pairs holding the callbacks for each
+    # topic. The value is an array of (callback, address)
     topics = {}
+
     cfg_threads = []
-    topic_data = []
 
     '''
     when called, this adds a callback, address pair to a topic.  The 'topics'
@@ -87,30 +93,34 @@ class pub(object):
         if int(topic) >= len(pub.topic_list):
             raise IndexError
 
-        if pub.topic_list[topic] not in pub.topics:
-            pub.topics[pub.topic_list[topic]] = [[callback, address]]
+        if pub.topic_list[topic][1] not in pub.topics:
+            pub.topics[pub.topic_list[topic][1]] = [[callback, address]]
         else:
-            pub.topics[pub.topic_list[topic]].append([callback, address])
+            pub.topics[pub.topic_list[topic][1]].append([callback, address])
 
-        # Send backlog events if any
-        for item in pub.topic_data:
-            if item[0] == topic and (address == None or item[1] == address):
-                Thread(target=callback, args=item[2:]).start()
+        # Send last event data (if any). Event data looks like:
+        #  [address, data]
+        if pub.topic_list[topic][2] != None:
+            item = pub.topic_list[topic][2]
+            if item[0] == None or item[0] == address:
+                Thread(target=callback, args=item[1:]).start()
 
 
     '''
     when we publish an event, we first push the event on to the backlog
     queue so that any later subscribers will get the event when they
     subscribe.
+
+    Q: should we keep all events or only the last?
     '''
     @staticmethod
     def publish(topic, address, *argv):
-        pub.topic_data.append([topic, address, *argv])
+        pub.topic_list[topic][2] = [address, *argv]
 
         # check if anyone has subscribed to this event
-        if pub.topic_list[topic] in pub.topics:
+        if pub.topic_list[topic][1] in pub.topics:
             # loop through all of the subscribers
-            for item in pub.topics[pub.topic_list[topic]]:
+            for item in pub.topics[pub.topic_list[topic][1]]:
                 '''
                 With the exception of the START event, all others are
                 published with address == None.
@@ -123,30 +133,40 @@ class pub(object):
                 if address == None or item[1] == address:
                     Thread(target=item[0], args=[*argv]).start()
 
+    '''
+    Used to publish the initial config data.  We track the
+    threads started so that we can publish a CONFIGDONE event
+    when all of the threads have finished.
+    '''
     @staticmethod
     def publish_nt(topic, address, *argv):
-        pub.topic_data.append([topic, address, *argv])
+        pub.topic_list[topic][2] = [address, *argv]
 
-        if pub.topic_list[topic] in pub.topics:
-            for item in pub.topics[pub.topic_list[topic]]:
+        if pub.topic_list[topic][1] in pub.topics:
+            for item in pub.topics[pub.topic_list[topic][1]]:
                 if address == None or item[1] == address:
                     t = Thread(target=item[0], args=[*argv])
                     pub.cfg_threads.append(t)
                     t.start()
 
+    '''
+    This is used to publish CONFIGDONE events.  We wait for
+    all of the threads published using publish_nt() to finish
+    before publishing this event.
+    '''
     @staticmethod
     def publish_wait(topic, address, *argv):
-        pub.topic_data.append([topic, address, *argv])
+        pub.topic_list[topic][2] = [address, *argv]
 
-        if pub.topic_list[topic] in pub.topics:
-            for item in pub.topics[pub.topic_list[topic]]:
+        if pub.topic_list[topic][1] in pub.topics:
+            for item in pub.topics[pub.topic_list[topic][1]]:
                 if address == None or item[1] == address:
                     Thread(target=pub.waitForFinish, args=[item[0], *argv]).start()
 
 
     @staticmethod
     def hasSubscriber(topic):
-        if pub.topic_list[topic] in pub.topics:
+        if pub.topic_list[topic][1] in pub.topics:
             return True
         return False
 
@@ -171,28 +191,28 @@ class Interface(object):
 
     CUSTOM_CONFIG_DOCS_FILE_NAME = 'POLYGLOT_CONFIG.md'
     SERVER_JSON_FILE_NAME = 'server.json'
-    CONFIG            = 0
-    START             = 1
-    STARTDONE         = 2
-    STOP              = 3
-    DELETE            = 4
-    ADDNODEDONE       = 5
-    CUSTOMDATA        = 6
-    CUSTOMPARAMS      = 7
-    CUSTOMTYPEDPARAMS = 8
-    CUSTOMNS          = 9
-    NOTICES           = 10
-    POLL              = 11
-    LOGLEVEL          = 12
-    ISY               = 13
-    CONFIGDONE        = 14
-    CUSTOMPARAMSDOC   = 15
-    CUSTOMTYPEDDATA   = 16
-    NSINFO            = 17
-    DISCOVER          = 18
-    OAUTH             = 19
-    WEBHOOK           = 20
-    BONJOUR           = 21
+    CONFIG            = pub.topic_list[0][0]
+    START             = pub.topic_list[1][0]
+    STARTDONE         = pub.topic_list[2][0]
+    STOP              = pub.topic_list[3][0]
+    DELETE            = pub.topic_list[4][0]
+    ADDNODEDONE       = pub.topic_list[5][0]
+    CUSTOMDATA        = pub.topic_list[6][0]
+    CUSTOMPARAMS      = pub.topic_list[7][0]
+    CUSTOMTYPEDPARAMS = pub.topic_list[8][0]
+    CUSTOMNS          = pub.topic_list[9][0]
+    NOTICES           = pub.topic_list[10][0]
+    POLL              = pub.topic_list[11][0]
+    LOGLEVEL          = pub.topic_list[12][0]
+    ISY               = pub.topic_list[13][0]
+    CONFIGDONE        = pub.topic_list[14][0]
+    CUSTOMPARAMSDOC   = pub.topic_list[15][0]
+    CUSTOMTYPEDDATA   = pub.topic_list[16][0]
+    NSINFO            = pub.topic_list[17][0]
+    DISCOVER          = pub.topic_list[18][0]
+    OAUTH             = pub.topic_list[19][0]
+    WEBHOOK           = pub.topic_list[20][0]
+    BONJOUR           = pub.topic_list[21][0]
 
     """
     Polyglot Interface Class
