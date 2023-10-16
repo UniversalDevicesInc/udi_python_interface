@@ -755,7 +755,7 @@ class Interface(object):
         # Run the nodes start function now.
         pub.publish(self.START, address)
 
-        # start has finished. Do we know which one this is?
+        # start has finished.
         pub.publish(self.STARTDONE, address, address)
 
     '''
