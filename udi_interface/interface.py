@@ -14,7 +14,7 @@ except ImportError:
     import Queue as queue
 import re
 import sys
-from threading import Thread, current_thread
+from threading import Thread, current_thread, Lock
 import time
 import netifaces
 import logging
@@ -270,6 +270,8 @@ class Interface(object):
         self.custom_params_pending_docs = ''
         self._levelsList = []
         self.ns_config = {'version':'', 'requestId':False}
+        self.send_lock = Lock()
+        self.send_queue = []
 
         """ persistent data storage for Interface """
         self._ifaceData = Custom(self, 'idata')  # Interface data
@@ -340,6 +342,7 @@ class Interface(object):
                     self._mqttc.reconnect()
 
             self.subscribed = True
+            Thread(target=self.send_thread).start()
         elif rc == 2:
             # Incorrect identifier, nothing to do but exit
             LOGGER.error("MQTT Failed to connect, invalid identifier")
@@ -627,7 +630,33 @@ class Interface(object):
             self._mqttc.publish('udi/pg3/connections/ns/{}'.format(self.id), json.dumps(disconnect), retain=True)
             self._mqttc.disconnect()
 
+    def send_thread(self):
+        """
+        This thread starts from the mqtt connection handler.  It 
+        reads the messages to send to PG3 from the send queue. 
+
+        If the mqtt connection is disconnected, the thread should
+        quit.
+        """
+        try:
+            while self.connected:
+                if len(self.send_queue) > 0:
+                    send_args = self.send_queue.pop(0)
+                    self._send(send_args['message'], send_args['type'])
+                else:
+                    time.sleep(.1)
+        except ex as Exception:
+            LOGGER.error('Message send thread aborting:  {}'.format(ex))
+
     def send(self, message, type):
+        # add message to send queue only
+        self.send_lock.acquire()
+        args = {'message': message, 'type': type}
+        self.send_queue.append(args)
+        self.send_lock.release()
+        return True
+        
+    def _send(self, message, type):
         """
         Formatted Message to send to Polyglot. Connection messages are sent
         automatically from this module so this method is used to send commands
