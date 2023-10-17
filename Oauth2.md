@@ -3,6 +3,14 @@
 We now have support in both the interface module and PG3/PG3x for node servers to
 use OAUTH2 authentication with external oauth servers.
 
+# Configuration on the remote service
+
+Before you configure PG3, you need to configure a client on the service you want to integrate to.
+When configuring the client, one of the parameters that will be asked is the redirect URL.
+
+Please use this redirect url: https://my.isy.io/api/cloudlink/redirect
+
+# PG3 configuration
 To enable the OAUTH2 functionality, edit your store entry and select the "Enable OAuth2" checkbox. 
 
 If oauth functionality is enabled you will now see an "Authenticate" button
