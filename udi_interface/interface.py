@@ -645,8 +645,9 @@ class Interface(object):
                     self._send(send_args['message'], send_args['type'])
                 else:
                     time.sleep(.1)
-        except ex as Exception:
-            LOGGER.error('Message send thread aborting:  {}'.format(ex))
+        except Exception as ex:
+            LOGGER.fatal('Message send thread aborting:  {}'.format(ex))
+            # At this point, MQTT is probably still up, but thread is stopping.
 
     def send(self, message, type):
         # add message to send queue only
