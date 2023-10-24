@@ -25,8 +25,7 @@ The JSON need the following information:
   "client_id": "The oAuth client ID",
   "client_secret": "The oAuth secret",
   "auth_endpoint": "The URL of the oAuth authorization endpoint",
-  "token_endpoint": "The URL of the token endpoing",
-  "cloudlink": true
+  "token_endpoint": "The URL of the token endpoing"
 }
 ```
 
