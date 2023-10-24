@@ -25,8 +25,14 @@ The JSON need the following information:
   "client_id": "The oAuth client ID",
   "client_secret": "The oAuth secret",
   "auth_endpoint": "The URL of the oAuth authorization endpoint",
-  "token_endpoint": "The URL of the token endpoing"
+  "token_endpoint": "The URL of the token endpoint"
 }
+```
+
+In addition, these optional parameters can be passed.
+```
+  "scope": "The oauth scope", // This scope will be added to the auhorization request and to the token endpoint
+  "addRedirect": true         // This will add the redirect_uri to the token endpoint 
 ```
 
 This information will be read from the node server store database when the
@@ -41,9 +47,6 @@ node server using the OAUTH event.
 
 The node sever can now use that info to make authenticated requests and
 refresh the token if necessary. 
-
-With the current implementation, PG3 always uses cloudlink to redirect the
-request for an authentication code.
 
 # Sample code
 
