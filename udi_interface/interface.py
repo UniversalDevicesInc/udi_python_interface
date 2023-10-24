@@ -642,20 +642,24 @@ class Interface(object):
             while self.connected:
                 if len(self.send_queue) > 0:
                     send_args = self.send_queue.pop(0)
-                    self._send(send_args['message'], send_args['type'])
+                    msginfo = self._send(send_args['message'], send_args['type'])
+                    # block until message is actually published.
+                    msginfo.wait_for_publish()
                 else:
-                    time.sleep(.1)
+                    # don't want the loop to consume 100% cpu when idle
+                    time.sleep(.01)
+
         except Exception as ex:
-            LOGGER.fatal('Message send thread aborting:  {}'.format(ex))
             # At this point, MQTT is probably still up, but thread is stopping.
+            LOGGER.fatal('Message send thread aborting:  {}'.format(ex))
 
     def send(self, message, type):
         # add message to send queue only
         self.send_lock.acquire()
         args = {'message': message, 'type': type}
-        self.send_queue.append(args)
+        msginfo = self.send_queue.append(args)
         self.send_lock.release()
-        return True
+        return msginfo
         
     def _send(self, message, type):
         """
@@ -685,7 +689,7 @@ class Interface(object):
 
         try:
             LOGGER.debug('PUBLISHING {}'.format(message))
-            self._mqttc.publish(topic, json.dumps(message), retain=False)
+            msginfo = self._mqttc.publish(topic, json.dumps(message), retain=False)
         except TypeError as err:
             LOGGER.error('MQTT Send Error: {}'.format(err), exc_info=True)
             return False
@@ -693,6 +697,7 @@ class Interface(object):
             # Do we want to re-try on errors?
             LOGGER.error('MQTT Publish Error: {}'.format(ex), exc_info=True)
             return False
+        return msginfo
 
     def _inConfig(self, config):
         LOGGER.debug('INCFG --> start processing config data')
