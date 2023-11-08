@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.2.4
+- Fix occasional SSL errors on publish
+
 ### 3.2.3
 - Use a single thread to publish messages to PG3.
 - When subscribing after startup, only the last event will be received for each types 

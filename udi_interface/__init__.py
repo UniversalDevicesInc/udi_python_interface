@@ -1,4 +1,4 @@
-__version__ = '3.2.3'
+__version__ = '3.2.4'
 __description__ = 'UDI Python Interface for Polyglot version 3'
 __url__ = 'https://github.com/UniversalDevicesInc/udi_python_interface'
 __author__ = 'Universal Devices Inc.'
