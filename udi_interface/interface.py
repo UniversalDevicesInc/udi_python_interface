@@ -644,7 +644,10 @@ class Interface(object):
                     send_args = self.send_queue.pop(0)
                     msginfo = self._send(send_args['message'], send_args['type'])
                     # block until message is actually published.
-                    msginfo.wait_for_publish()
+                    if msginfo is not False:
+                        msginfo.wait_for_publish()
+                    else:
+                        time.sleep(3)
                 else:
                     # don't want the loop to consume 100% cpu when idle
                     time.sleep(.01)
