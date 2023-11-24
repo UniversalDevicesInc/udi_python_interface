@@ -30,6 +30,8 @@ GLOBAL_LOGGER = LOGGER
 DEBUG = False
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel("INFO")
+SEND_RETRY_MAX = 3
+SEND_RETRY_DELAY = 5
 
 """
 usage:
@@ -664,7 +666,7 @@ class Interface(object):
         self.send_lock.release()
         return msginfo
         
-    def _send(self, message, type):
+    def _send(self, message, type, retryCount=0):
         """
         Formatted Message to send to Polyglot. Connection messages are sent
         automatically from this module so this method is used to send commands
@@ -696,6 +698,16 @@ class Interface(object):
         except TypeError as err:
             LOGGER.error('MQTT Send Error: {}'.format(err), exc_info=True)
             return False
+        except ssl.SSLError as err:
+            if retryCount < SEND_RETRY_MAX:
+                LOGGER.error('MQTT SSL Publish Error: {}'.format(err.args[0] if err.args else err), exc_info=False)
+                time.sleep(SEND_RETRY_DELAY)
+                LOGGER.info('MQTT Publish Retry {}/{}'.format(retryCount + 1, SEND_RETRY_MAX))
+                return self._send(message, type, retryCount+1)
+            else:
+                LOGGER.error('MQTT Publish Error (SSL - Max retry reached): {}'.format(err), exc_info=False)
+                return False
+
         except Exception as ex:
             # Do we want to re-try on errors?
             LOGGER.error('MQTT Publish Error: {}'.format(ex), exc_info=True)
