@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.2.5
+- When an SSL error is encountered during publishing, retry up to 3 times
+
 ### 3.2.4
 - Fix occasional SSL errors on publish
 
