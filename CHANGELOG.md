@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.2.6
+- Revert SSL error retries from 3.2.5. This did not help as when there is an SSL publish error, the connection drops. 
+
 ### 3.2.5
 - When an SSL error is encountered during publishing, retry up to 3 times
 

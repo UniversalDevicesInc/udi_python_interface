@@ -30,8 +30,8 @@ GLOBAL_LOGGER = LOGGER
 DEBUG = False
 LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel("INFO")
-SEND_RETRY_MAX = 3
-SEND_RETRY_DELAY = 5
+# SEND_RETRY_MAX = 3
+# SEND_RETRY_DELAY = 5
 
 """
 usage:
@@ -699,14 +699,14 @@ class Interface(object):
             LOGGER.error('MQTT Send Error: {}'.format(err), exc_info=True)
             return False
         except ssl.SSLError as err:
-            if retryCount < SEND_RETRY_MAX:
-                LOGGER.error('MQTT SSL Publish Error: {}'.format(err.args[0] if err.args else err), exc_info=False)
-                time.sleep(SEND_RETRY_DELAY)
-                LOGGER.info('MQTT Publish Retry {}/{}'.format(retryCount + 1, SEND_RETRY_MAX))
-                return self._send(message, type, retryCount+1)
-            else:
-                LOGGER.error('MQTT Publish Error (SSL - Max retry reached): {}'.format(err), exc_info=False)
-                return False
+            # if retryCount < SEND_RETRY_MAX:
+            #     LOGGER.error('MQTT SSL Publish Error: {}'.format(err), exc_info=False)
+            #     time.sleep(SEND_RETRY_DELAY)
+            #     LOGGER.info('MQTT Publish Retry {}/{}'.format(retryCount + 1, SEND_RETRY_MAX))
+            #     return self._send(message, type, retryCount+1)
+            # else:
+            LOGGER.error('MQTT Publish Error: {}'.format(err), exc_info=False)
+            return False
 
         except Exception as ex:
             # Do we want to re-try on errors?
