@@ -62,8 +62,8 @@ Your external service class will use this.
 ```python
 #!/usr/bin/env python3
 """
-oAuth interface
-Copyright (C) 2023 Universal Devices
+Polyglot oAuth interface
+Copyright (C) 2024 Universal Devices
 
 MIT License
 """
@@ -80,8 +80,12 @@ class OAuth:
         # self.customData.token contains the oAuth tokens
         self.customData = Custom(polyglot, 'customdata')
 
-        # This is the oauth configuration from the node server store
-        self.oauthConfig = {}
+        # self.oauthConfig contains the oAuth configuration
+        self.oauthConfig = Custom(polyglot, 'oauth')
+
+        # This is used to store the client_id and secret temporarily when they are dynamically set using custom params.
+        self.client_id = None
+        self.client_secret = None
 
     # customData contains current oAuth tokens: self.customData['tokens']
     def _customDataHandler(self, data):
@@ -92,27 +96,52 @@ class OAuth:
     def _customNsHandler(self, key, data):
         # LOGGER.info('CustomNsHandler {}'.format(key))
         if key == 'oauth':
-            LOGGER.info('CustomNsHandler oAuth: {}'.format(json.dumps(data)))
+            # If we received custom params before the oAuth config, update them here
+            # If custom params provided the client_id and secret, they have precedence over nodeserver oauth config
+            if self.client_id and data['client_id'] is not self.client_id:
+                data['client_id'] = self.client_id
 
-            self.oauthConfig = data
+            if self.client_secret and data['client_secret'] is not self.client_secret:
+                data['client_secret'] = self.client_secret
 
-            if self.oauthConfig.get('auth_endpoint') is None:
+            # Set our internal oauth config & update the server as well (if it has changed)
+            self.oauthConfig.load(data)
+
+            if self.oauthConfig['auth_endpoint'] is None:
                 LOGGER.error('oAuth configuration is missing auth_endpoint')
 
-            if self.oauthConfig.get('token_endpoint') is None:
+            if self.oauthConfig['token_endpoint'] is None:
                 LOGGER.error('oAuth configuration is missing token_endpoint')
 
-            if self.oauthConfig.get('client_id') is None:
+            if self.oauthConfig['client_id'] is None:
                 LOGGER.error('oAuth configuration is missing client_id')
 
-            if self.oauthConfig.get('client_secret') is None:
+            if self.oauthConfig['client_secret'] is None:
                 LOGGER.error('oAuth configuration is missing client_secret')
 
-    # User proceeded through oAuth authentication.
+    # Use this handler to override oAuth configuration from customParams
+    # Example: For plugins that requires per user client_id and secrets, this allows users to set them using custom params
+    # If using an oAuth configuration that is the same for everyone, then this is not required (no need to subscribe for custom params)
+    def _customParamsHandler(self, data):
+        # Set the name of the custom params which contains the user's client_id and secrets
+        client_id_param = 'client_id'
+        secret_param = 'client_secret'
+
+        if data is not None and client_id_param in data and data[client_id_param] is not None:
+            self.oauthConfig.client_id = data[client_id_param]
+            self.client_id = data[client_id_param]
+            LOGGER.info('oAuth client_id set to: {}'.format(self.oauthConfig.client_id))
+
+        if data is not None and secret_param in data and data[secret_param] is not None:
+            self.oauthConfig.client_secret = data[secret_param]
+            self.client_secret = data[secret_param]
+            # Secret is intentionally not logged
+            LOGGER.info('oAuth secret set to: ********')
+
+    # User proceeded through oAuth authentication, or plugin started
     # The authorization_code has already been exchanged for access_token and refresh_token by PG3
     def _oauthHandler(self, token):
-        LOGGER.info('Authentication completed')
-        LOGGER.debug('Received oAuth tokens: {}'.format(json.dumps(token)))
+        LOGGER.info('Received oAuth tokens: {}'.format(json.dumps(token)))
         self._saveToken(token)
 
     def _saveToken(self, token):
@@ -164,7 +193,6 @@ class OAuth:
             return self.customData.token.get('access_token')
         else:
             return None
-
 ```
 
 ### Your external service class
@@ -211,6 +239,9 @@ class MyService(OAuth):
         # Example for a boolean field
         self.myParamBoolean = ('myParam' in self.customParams and self.customParams['myParam'].lower() == 'true')
         LOGGER.info(f"My param boolean: { self.myParamBoolean }")
+        # If using client id & secret provided in custom params, pass the custom params to the oAuth module 
+        super()._customParamsHandler(data)
+        
 
     # Call your external service API
     def _callApi(self, method='GET', url=None, body=None):
