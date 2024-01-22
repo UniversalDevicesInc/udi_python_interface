@@ -44,7 +44,7 @@ usage:
 class pub(object):
 
     # List of available topics for publish/subscribe.  The
-    # index into the array and the ID are currently interchangable
+    # index into the array and the ID are currently interchangeable
     # and we don't really use the ID.
     #
     # [topic id, topic name, last event data]
@@ -371,10 +371,9 @@ class Interface(object):
             # these are queued so that we can process them in order.
             inputCmds = ['query', 'command', 'addnode', 'stop',
                          'status', 'shortPoll', 'longPoll', 'delete',
-                         'config', 'customdata', 'customparams', 'notices',
-                         'getIsyInfo', 'getAll', 'setLogLevel',
-                         'customtypeddata', 'customtypedparams', 'getNsInfo',
-                         'discover', 'nsdata', 'setController', 'oauth', 'webhook', 'bonjour' ]
+                         'config', 'getIsyInfo', 'getAll', 'custom', 'setLogLevel',
+                         'getNsInfo', 'discover', 'nsdata', 'setController',
+                         'oauth', 'webhook', 'bonjour' ]
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
             #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
@@ -419,21 +418,6 @@ class Interface(object):
 
                     else:
                         LOGGER.error('set input was not a list')
-                elif key == 'custom':
-                    # custom response, parse and put standard keys in queue
-                    for custom_key in parsed_msg[key]:
-                        if custom_key in inputCmds:
-                            LOGGER.debug('QUEUING incoming message {}'.format(custom_key))
-                            self.inQueue.put(parsed_msg[key])
-                        else:
-                            LOGGER.info('custom data response {}'.format(parsed_msg[key]))
-                            '''
-                            This should be the response to saving user defined
-                            custom data.  Since the node server just wants
-                            this saved, it doesn't make sense to publish this
-                            as an event.  But we could if there's a valid
-                            reason to do so.
-                            '''
                 elif key == 'installprofile':
                     LOGGER.info('Profile installation finished')
                 elif key == 'error':
@@ -863,55 +847,56 @@ class Interface(object):
         #LOGGER.info('PROCESS {} message {} from Polyglot'.format(key, item))
         if key == 'config':
             self._inConfig(item)
-        elif key == 'customdata':
-            #LOGGER.debug('customData: {}'.format(item))
-            try:
-                value = json.loads(item)
-            except ValueError as e:
-                value = item.get('value')
+        elif key == 'custom':
+            for customKey in item:
+                LOGGER.debug('Process custom message {} from Polyglot'.format(customKey, item.get(customKey)))
+                if customKey == 'customdata':
+                    # LOGGER.debug('customData: {}'.format(item.get(customKey)))
+                    try:
+                        value = json.loads(item.get(customKey))
+                    except TypeError as e:
+                        value = item.get(customKey).get('value')
 
-            pub.publish(self.CUSTOMDATA, None, value)
-        elif key == 'customtypeddata':
-            #LOGGER.debug('customTypedData: {}'.format(item))
-            try:
-                value = json.loads(item)
-            except ValueError as e:
-                value = item.get('value')
+                    pub.publish(self.CUSTOMDATA, None, value)
+                elif customKey == 'customtypeddata':
+                    #LOGGER.debug('customTypedData: {}'.format(item.get(customKey)))
+                    try:
+                        value = json.loads(item.get(customKey))
+                    except TypeError as e:
+                        value = item.get(customKey).get('value')
 
-            pub.publish(self.CUSTOMTYPEDDATA, None, value)
-        elif key == 'customparams':
-            #LOGGER.debug('customParams: {}'.format(item))
-            try:
-                value = json.loads(item)
-            except ValueError as e:
-                value = item.get('value')
+                    pub.publish(self.CUSTOMTYPEDDATA, None, value)
+                elif customKey == 'customparams':
+                    #LOGGER.debug('customParams: {}'.format(item.get(customKey)))
+                    try:
+                        value = json.loads(item.get(customKey))
+                    except TypeError as e:
+                        value = item.get(customKey).get('value')
 
-            pub.publish(self.CUSTOMPARAMS, None, value)
-        elif key == 'nsdata':
-            #LOGGER.debug('nsdata: {}'.format(item))
-            try:
-                value = json.loads(item)
-            except ValueError as e:
-                value = item
+                    pub.publish(self.CUSTOMPARAMS, None, value)
+                elif customKey == 'customtypedparams':
+                    try:
+                        value = json.loads(item.get(customKey))
+                    except TypeError as e:
+                        value = item.get(customKey)
 
-            pub.publish(self.CUSTOMNS, None, key, value)
-        elif key == 'customtypedparams':
-            try:
-                value = json.loads(item)
-            except ValueError as e:
-                value = item
+                    pub.publish(self.CUSTOMTYPEDPARAMS, None, value)
+                elif customKey == 'notices':
+                    #LOGGER.debug('notices: {}'.format(item.get(customKey)))
+                    try:
+                        value = json.loads(item.get(customKey))
+                    except TypeError as e:
+                        value = item.get(customKey).get('value')
 
-            pub.publish(self.CUSTOMTYPEDPARAMS, None, value)
-        elif key == 'notices':
-            #LOGGER.debug('notices: {}'.format(item))
+                    self.Notices.load(value)
+                    pub.publish(self.NOTICES, None, value)
+                elif customKey == 'nsdata':
+                    try:
+                        value = json.loads(item.get(customKey))
+                    except TypeError as e:
+                        value = item.get(customKey)
 
-            try:
-                value = json.loads(item)
-            except ValueError as e:
-                value = item.get('value')
-
-            self.Notices.load(value)
-            pub.publish(self.NOTICES, None, value)
+                    pub.publish(self.CUSTOMNS, None, customKey, value)
         elif key == 'getIsyInfo':
             pub.publish(self.ISY, None, item)
         elif key == 'getNsInfo':
@@ -925,7 +910,7 @@ class Interface(object):
             This is one of the first messages we get from Polyglot.
 
             custom keys should include notices, customparams,
-            customtypedparams, customdata
+            customtypedparams, customdata, customtypeddata, idata
             """
             try:
                 if item.get('key') == 'customparamsdoc':
