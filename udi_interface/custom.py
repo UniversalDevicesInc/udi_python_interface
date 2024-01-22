@@ -11,7 +11,7 @@ class Custom(dict):
         self.__dict__['poly'] = poly
         self.__dict__['custom'] = custom
 
-        CLOGGER.debug('CUSTOM: Initialzing _rawdata to empty')
+        CLOGGER.debug('CUSTOM: Initializing _rawdata to empty')
         self.__dict__['_rawdata'] = {}
 
         """
@@ -146,6 +146,9 @@ class Custom(dict):
 
     def items(self):
         return self._rawdata.items()
+
+    def get(self, key):
+        return self.__getitem__(key)
 
     def values(self):
         return self._rawdata.values()
