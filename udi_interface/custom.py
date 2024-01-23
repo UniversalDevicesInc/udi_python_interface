@@ -1,5 +1,4 @@
 import logging
-#from .polylogger import LOGGER
 
 CLOGGER = logging.getLogger(__name__)
 CLOGGER.setLevel("INFO")
@@ -35,6 +34,7 @@ class Custom(dict):
         message = {'set': [{'key': key, 'value': self.__dict__['_rawdata']}]}
         self.poly.send(message, 'custom')
 
+    # This loads new_data (it overwrites the previous content with new_data)
     def load(self, new_data, save=False):
 
         if new_data is None:
@@ -43,8 +43,7 @@ class Custom(dict):
 
         """
         FIXME: this is used to update the internal data
-        structure from Polyglot's database.  Should this
-        be overwriting or updating the internal structure?
+        structure from Polyglot's database. This overwrites the internal structure
         """
         CLOGGER.debug('CUSTOM: load {}'.format(new_data))
 
@@ -92,6 +91,36 @@ class Custom(dict):
 
         if save:
             self._save()
+
+
+    # Same as load, but updates with new_data (does not overwrite)
+    def update(self, update, save=False):
+        if update is None:
+            return
+
+        new_data = self.__dict__['_rawdata']
+        has_changes = self._deep_update(new_data, update)
+
+        if has_changes:
+            self.load(new_data, True)
+
+    def _deep_update(self, original, update):
+        has_changes = False
+        # Recursively update a dictionary with another dictionary.
+        for key, value in update.items():
+            # If assigning an object, go one level deeper
+            if isinstance(value, dict):
+                # The original object must either have a key assigned to an object, or not yet exist
+                if key not in original or not isinstance(original[key], dict):
+                    original[key] = {}
+
+                has_changes = has_changes or self._deep_update(original[key], value)
+            else:
+                if original.get(key) != value:
+                    has_changes = True
+                    original[key] = value
+
+        return has_changes
 
     def __setattr__(self, key, notice):
         self.__dict__['_rawdata'][key] = notice
