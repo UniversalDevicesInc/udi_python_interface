@@ -27,6 +27,8 @@ try:
     from .custom import Custom
     LOGGER.info('Loading isy module')
     from .isy import ISY
+    LOGGER.info('Loading OAuth module')
+    from .oauth import OAuth
     LOGGER.info('UDI interface initialized')
 
     LOGGER.info('{} {} Starting...'.format(__description__, __version__))

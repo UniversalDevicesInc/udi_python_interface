@@ -1,25 +1,23 @@
-# Configuring a node server to use OAUTH2 authentication with external service
+# Configuring a plugin to use OAUTH2 authentication with an external service
 
-We now have support in both the interface module and PG3/PG3x for node servers to
+We now have support in both the interface module and PG3/PG3x for plugins to
 use OAUTH2 authentication with external oauth servers.
 
 # Configuration on the remote service
 
-Before you configure PG3, you need to configure a client on the service you want to integrate to.
+Before you configure your plugin, you need to configure an oAuth client on the service you want to integrate to.
 When configuring the client, one of the parameters that will be asked is the redirect URL.
 
 Please use this redirect url: https://my.isy.io/api/cloudlink/redirect
 
 # PG3 configuration
-To enable the OAUTH2 functionality, edit your store entry and select the "Enable OAuth2" checkbox. 
+To enable the OAUTH2 functionality, edit your store entry and select the "Enable OAuth2" checkbox.
+This will add the "Authenticate" button in your plugin's detail page on the dashboard.
 
-If oauth functionality is enabled you will now see an "Authenticate" button
-in your node server's detail page on the dashboard.
+In addition, you need to supply the oauth configuration under "Oauth Configuration" in the store page. 
+The JSON needs the following information:
 
-In addition, you need to supply the oauth configuration under "Oauth Configuration". 
-The JSON need the following information:
-
-```
+```json
 {
   "name": "name of service - this can be anything",
   "client_id": "The oAuth client ID",
@@ -29,208 +27,84 @@ The JSON need the following information:
 }
 ```
 
-In addition, these optional parameters can be passed.
-```
+In addition, these optional parameters can be used in the oAuth configuration.
+```json
+{
   "scope": "The oauth scope", // This scope will be added to the auhorization request and to the token endpoint
-  "addRedirect": true         // This will add the redirect_uri to the token endpoint 
+  "addRedirect": true,        // This will add the redirect_uri to the token endpoint 
+  "parameters": {},           // You can pass extra parameters to the authorization request
+  "token_parameters": {}      // You can pass extra parameters to the token endpoint
+}
 ```
 
-This information will be read from the node server store database when the
-node server starts and sent to your node server via the CUSTOMNS event using
+The oAuth configuration will be copied at the time of the installation. 
+Then, when a plugin is started, that information is sent to your plugin via the CUSTOMNS event using
 the key 'oauth'.
 
 When the "Authenticate" button is pressed, PG3 will call the auth_endpoint 
 and redirect the browser to the auth service to validate the user's credentials.
-A valid authorization code will be returned and used to request the access_token
-data.  PG3 will send the information returned from that request to the 
-node server using the OAUTH event.
+A valid authorization code will be returned from the authorization endpoint and PG3 will use 
+it request the access_token & refresh_token. PG3 will save that information as "custom" data and will send 
+an OAUTH event to the plugin.
 
-The node sever can now use that info to make authenticated requests and
-refresh the token if necessary. 
+On subsequent restarts of the plugin, the tokens will be sent through a CUSTOMNS event using the key "oauthTokens".
+
+In your plugin, all you have to do is pass these events to the OAuth ``customNsHandler`` & ``oauthHandler``, like this: 
+
+```python
+    # These are methods in your cloud module, which inherits the OAuth class
+    def customNsHandler(self, key, data):
+        super().customNsHandler(key, data)
+
+    def oauthHandler(self, token):
+        super().oauthHandler(token)
+```
+
+When authenticated, the plugin can use the method ``getAccessToken`` to get the access_token and make authenticated requests.
+If the access_token is expired, the interface will take care of refreshing the tokens.
+
+If the service is not yet authenticated, ``getAccessToken`` will raise a ValueError exception.
 
 # Sample code
 
 As a general approach, we recommend to develop a class to interface with your external service. 
-Your external service class would extend a generic oAuth class which will take care of the lower level
-oAuth handling for you.
-
-### oauth.py
-
-We recommend to save this file as is to the lib folder of your node server as oauth.py.
-Your external service class will use this.
-
-```python
-#!/usr/bin/env python3
-"""
-Polyglot oAuth interface
-Copyright (C) 2024 Universal Devices
-
-MIT License
-"""
-import json
-import requests
-from datetime import timedelta, datetime
-from udi_interface import LOGGER, Custom
-
-'''
-OAuth is the class to manage oauth tokens to an external service
-'''
-class OAuth:
-    def __init__(self, polyglot):
-        # self.customData.token contains the oAuth tokens
-        self.customData = Custom(polyglot, 'customdata')
-
-        # self.oauthConfig contains the oAuth configuration
-        self.oauthConfig = Custom(polyglot, 'oauth')
-
-        # This is used to store the client_id and secret temporarily when they are dynamically set using custom params.
-        self.client_id = None
-        self.client_secret = None
-
-    # customData contains current oAuth tokens: self.customData['tokens']
-    def _customDataHandler(self, data):
-        LOGGER.debug(f"Received customData: { json.dumps(data) }")
-        self.customData.load(data)
-
-    # Gives us the oAuth config from the store
-    def _customNsHandler(self, key, data):
-        # LOGGER.info('CustomNsHandler {}'.format(key))
-        if key == 'oauth':
-            # If we received custom params before the oAuth config, update them here
-            # If custom params provided the client_id and secret, they have precedence over nodeserver oauth config
-            if self.client_id and data['client_id'] is not self.client_id:
-                data['client_id'] = self.client_id
-
-            if self.client_secret and data['client_secret'] is not self.client_secret:
-                data['client_secret'] = self.client_secret
-
-            # Set our internal oauth config & update the server as well (if it has changed)
-            self.oauthConfig.load(data)
-
-            if self.oauthConfig['auth_endpoint'] is None:
-                LOGGER.error('oAuth configuration is missing auth_endpoint')
-
-            if self.oauthConfig['token_endpoint'] is None:
-                LOGGER.error('oAuth configuration is missing token_endpoint')
-
-            if self.oauthConfig['client_id'] is None:
-                LOGGER.error('oAuth configuration is missing client_id')
-
-            if self.oauthConfig['client_secret'] is None:
-                LOGGER.error('oAuth configuration is missing client_secret')
-
-    # Use this handler to override oAuth configuration from customParams
-    # Example: For plugins that requires per user client_id and secrets, this allows users to set them using custom params
-    # If using an oAuth configuration that is the same for everyone, then this is not required (no need to subscribe for custom params)
-    def _customParamsHandler(self, data):
-        # Set the name of the custom params which contains the user's client_id and secrets
-        client_id_param = 'client_id'
-        secret_param = 'client_secret'
-
-        if data is not None and client_id_param in data and data[client_id_param] is not None:
-            self.oauthConfig.client_id = data[client_id_param]
-            self.client_id = data[client_id_param]
-            LOGGER.info('oAuth client_id set to: {}'.format(self.oauthConfig.client_id))
-
-        if data is not None and secret_param in data and data[secret_param] is not None:
-            self.oauthConfig.client_secret = data[secret_param]
-            self.client_secret = data[secret_param]
-            # Secret is intentionally not logged
-            LOGGER.info('oAuth secret set to: ********')
-
-    # User proceeded through oAuth authentication, or plugin started
-    # The authorization_code has already been exchanged for access_token and refresh_token by PG3
-    def _oauthHandler(self, token):
-        LOGGER.info('Received oAuth tokens: {}'.format(json.dumps(token)))
-        self._saveToken(token)
-
-    def _saveToken(self, token):
-        # Add the expiry key, so that we can later check if the tokens are due to be expired
-        token['expiry'] = (datetime.now() + timedelta(seconds=token['expires_in'])).isoformat()
-
-        # This updates our copy of customData, but also sends it to PG3 for storage
-        self.customData['token'] = token
-
-    def _oAuthTokensRefresh(self):
-        LOGGER.info('Refreshing oAuth tokens')
-        LOGGER.debug(f"Token before: { self.customData.token }")
-        data = {
-            'grant_type': 'refresh_token',
-            'refresh_token': self.customData.token['refresh_token'],
-            'client_id': self.oauthConfig['client_id'],
-            'client_secret': self.oauthConfig['client_secret']
-        }
-
-        try:
-            response = requests.post(self.oauthConfig['token_endpoint'], data=data)
-            response.raise_for_status()
-            token = response.json()
-            LOGGER.info('Refreshing oAuth tokens successful')
-            LOGGER.debug(f"Token refresh result [{ type(token) }]: { token }")
-            self._saveToken(token)
-
-        except requests.exceptions.HTTPError as error:
-            LOGGER.error(f"Failed to refresh oAuth token: { error }")
-            # NOTE: If refresh tokens fails, we keep the existing tokens available.
-
-    # Gets the access token, and refresh if necessary
-    # Should be called only after config is done
-    def getAccessToken(self):
-        LOGGER.info('Getting access token')
-        token = self.customData['token']
-
-        if token is not None:
-            expiry = token.get('expiry')
-
-            LOGGER.info(f"Token expiry is { expiry }")
-            # If expired or expiring in less than 60 seconds, refresh
-            if expiry is None or datetime.fromisoformat(expiry) - timedelta(seconds=60) < datetime.now():
-                LOGGER.info('Refresh tokens expired. Initiating refresh.')
-                self._oAuthTokensRefresh()
-            else:
-                LOGGER.info('Refresh tokens is still valid, no need to refresh')
-
-            return self.customData.token.get('access_token')
-        else:
-            return None
-```
+Your external service class should inherit the ``OAuth`` class provided by the python interface 
+which will take care of the lower level oAuth handling for you.
 
 ### Your external service class
 
-Your external service class can be named anything you want, and the recommended location would be the lib folder.
-It would look like this:
+Your external service class can be named anything you want, and it would look like this:
 ```python
 !/usr/bin/env python3
 """
 External service sample code
-Copyright (C) 2023 Universal Devices
+Copyright (C) 2024 Universal Devices
 
 MIT License
 """
 import requests
-from udi_interface import LOGGER, Custom
-from lib.oauth import OAuth
+from udi_interface import LOGGER, Custom, OAuth
 
-# Implements the API calls to your external service
+# This class implements the API calls to your external service
 # It inherits the OAuth class
 class MyService(OAuth):
     yourApiEndpoint = 'https://your_service.com/base_url'
 
     def __init__(self, polyglot):
+        # Initialize the OAuth class as well
         super().__init__(polyglot)
 
         self.poly = polyglot
         self.customParams = Custom(polyglot, 'customparams')
-        LOGGER.info('External service connectivity initialized...')
-
-    # The OAuth class needs to be hooked to these 3 handlers
-    def customDataHandler(self, data):
-        super()._customDataHandler(data)
-
+        LOGGER.info('External service initialized...')
+        
+    # The OAuth class needs to be hooked to these 2 handlers
     def customNsHandler(self, key, data):
+        # This provides the oAuth config (key='oauth') and saved oAuth tokens (key='oauthTokens))
         super()._customNsHandler(key, data)
 
     def oauthHandler(self, token):
+        # This provides initial oAuth tokens following user authentication
         super()._oauthHandler(token)
 
     # Your service may need to access custom params as well...
@@ -239,24 +113,20 @@ class MyService(OAuth):
         # Example for a boolean field
         self.myParamBoolean = ('myParam' in self.customParams and self.customParams['myParam'].lower() == 'true')
         LOGGER.info(f"My param boolean: { self.myParamBoolean }")
-        # If using client id & secret provided in custom params, pass the custom params to the oAuth module 
-        super()._customParamsHandler(data)
-        
 
     # Call your external service API
     def _callApi(self, method='GET', url=None, body=None):
-        # When calling an API, get the access token (it will be refreshed if necessary)
-        accessToken = self.getAccessToken()
-
-        if accessToken is None:
-            LOGGER.error('Access token is not available')
-            return None
-
         if url is None:
             LOGGER.error('url is required')
             return None
 
         completeUrl = self.yourApiEndpoint + url
+
+        LOGGER.info(f"Making call to { method } { completeUrl }")
+
+        # When calling an API, get the access token (it will be refreshed if necessary)
+        # If user has not authenticated yet, getAccessToken will raise a ValueError exception
+        accessToken = self.getAccessToken()
 
         headers = {
             'Authorization': f"Bearer { accessToken }"
@@ -298,16 +168,16 @@ class MyService(OAuth):
         return self._callApi(url='/user/info')
 ```
 
-### Main node server code
+### Main plugin code
 
-The entry point for your node server would then look like this:
+The entry point for your plugin would then look like this:
 
 ```python
 #!/usr/bin/env python3
 
 """
-Polyglot v3 node server
-Copyright (C) 2023 Universal Devices
+Polyglot v3 plugin
+Copyright (C) 2024 Universal Devices
 
 MIT License
 """
@@ -327,17 +197,19 @@ def configDoneHandler():
     # We use this to discover devices, or ask to authenticate if user has not already done so
     polyglot.Notices.clear()
 
-    accessToken = myService.getAccessToken()
-
-    if accessToken is None:
-        LOGGER.info('Access token is not yet available. Please authenticate.')
+    # First check if user has authenticated
+    try:
+        myService.getAccessToken()
+    except ValueError as err:
+        LOGGER.warning('Access token is not yet available. Please authenticate.')
         polyglot.Notices['auth'] = 'Please initiate authentication'
         return
 
+    # If getAccessToken did raise an exception, then proceed with device discovery
     controller.discoverDevices()
 
 def oauthHandler(token):
-    # When user just authorized, we need to store the tokens
+    # When user just authorized, pass this to your service, which will pass it to the OAuth handler
     myService.oauthHandler(token)
 
     # Then proceed with device discovery
@@ -393,9 +265,72 @@ if __name__ == "__main__":
         sys.exit(0)
 
     except Exception:
-        LOGGER.error(f"Error starting Nodeserver: {traceback.format_exc()}")
+        LOGGER.error(f"Error starting plugin: {traceback.format_exc()}")
         polyglot.stop()
 ```
 
+# Using dynamic oAuth configuration
 
+If your cloud service requires your users to have their own client_id and client_secret,
+you can have them set by the users using custom params, and have the plugin dynamically update 
+the oAuth configuration.
 
+These methods are used to update and get the oAuth configuration (See example below):
+``updateOauthSettings``
+,``getOauthSettings``. 
+
+When calling updateOauthSettings(settings), you don't have to pass all the settings.
+You can pass only the changes. 
+If some settings never changes, you should set them using the plugin store page instead.
+
+The following example shows how to update client_id and client_secret from custom params. The custom params names 
+in this example are the same, but could be completely different.
+
+The example also shows how to update parameters & token_parameters objects.
+
+This is assuming that this handler is in a class which inherits the OAuth class.
+
+```python
+ def customParamsHandler(self, customParams):
+        self.customParams.load(customParams)
+        LOGGER.info(f"CustomParams: { json.dumps(customParams) }")
+
+        if customParams is not None:
+            oauthSettingsUpdate = {}
+
+            if 'client_id' in customParams:
+                oauthSettingsUpdate['client_id'] = customParams['client_id']
+                LOGGER.info(f"oAuth client_id set to: { customParams['client_id'] }")
+
+            if 'client_secret' in customParams:
+                oauthSettingsUpdate['client_secret'] = customParams['client_secret']
+                LOGGER.info('oAuth secret set to: ********')
+
+            # Example showing how to update the "parameters" object
+            if 'my_auth_param' in customParams:
+                # parameters must be initialized first
+                if 'parameters' not in oauthSettingsUpdate:
+                    oauthSettingsUpdate['parameters'] = {}
+
+                # This takes my_auth_param and sets it in the parameters object.
+                # This means that during authentication, the authorization url will include &my_auth_param=<value of my_auth_param>
+                oauthSettingsUpdate['parameters']['my_auth_param'] = customParams['my_auth_param']
+                LOGGER.info(f"Setting oAuth my_auth_param to: { customParams['my_auth_param'] }")
+                
+                # NOTE: We can add as many parameters as we need to the parameters object.
+                
+            # This shows the same approach, but for the token endpoint.
+            if 'my_token_param' in customParams:
+                if 'token_parameters' not in oauthSettingsUpdate:
+                    oauthSettingsUpdate['token_parameters'] = {}
+
+                oauthSettingsUpdate['token_parameters']['my_token_param'] = customParams['my_token_param']
+                LOGGER.info(f"Setting oAuth my_token_param to: { customParams['my_token_param'] }")
+
+            LOGGER.debug(f"Updating oAuth config using: { json.dumps(oauthSettingsUpdate) }")
+
+            # Update the plugin oAuth configuration with this update
+            self.updateOauthSettings(oauthSettingsUpdate)
+
+            LOGGER.debug(f"Updated oAuth config: { self.getOauthSettings() }")
+```
