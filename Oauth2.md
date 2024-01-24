@@ -28,7 +28,7 @@ The JSON needs the following information:
 ```
 
 In addition, these optional parameters can be used in the oAuth configuration.
-```json
+```
 {
   "scope": "The oauth scope", // This scope will be added to the auhorization request and to the token endpoint
   "addRedirect": true,        // This will add the redirect_uri to the token endpoint 
