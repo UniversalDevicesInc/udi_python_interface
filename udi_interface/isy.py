@@ -43,7 +43,7 @@ class ISY(object):
             self.valid = True
         else:
             self.unauthorized = True
-            ILOGGER.error('Access to ISY is not authorized. To allow node server to access ISY directly, go to the node server configuration and click Allow Unnestricted ISY Access by Node Server')
+            ILOGGER.error('Access to ISY is not authorized. To allow node server to access ISY directly, go to the node server configuration and click Allow Unrestricted ISY Access by Node Server')
 
     # Send command to ISY and get response
     def cmd(self, command):
