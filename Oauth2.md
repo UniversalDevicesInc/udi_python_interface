@@ -334,3 +334,59 @@ This is assuming that this handler is in a class which inherits the OAuth class.
 
             LOGGER.debug(f"Updated oAuth config: { self.getOauthSettings() }")
 ```
+
+# Migrating the OAuth class
+
+In earlier releases of the python interface, there was an OAuth sample class that your plugin could use to support oAuth.
+
+There are 2 breaking changes
+
+## getAccessToken method
+
+In the previous OAuth class, if user had not yet authorized, the ``getAccessMethod`` would return None. 
+
+In this new OAuth class, if user had not yet authorized, the ``getAccessMethod`` method will raise a ValueError exception.
+Therefore, your plugin should catch ValueError exceptions and handle accordingly, such as sending a notice to
+request user to Authenticate.
+
+## token storage
+
+In the previous OAuth class, the current access and refresh tokens were stored in customdata, under the key 'token'. 
+
+This new OAuth class uses a new custom named 'oauthTokens'.
+
+This means that if nothing is done to migrate the data, user will need to re-authenticate after updating your plugin.
+
+To migrate the data, all you have to do is to subscribe to the CUSTOMDATA pg3 events, and if a token is found, 
+save it under oauthTokens and continue processing.
+
+This example shows how to migrate the token data
+```python3
+        # Your code needs to listen to polyglot.CUSTOMDATA events
+        polyglot.subscribe(polyglot.CUSTOMDATA, myService.customDataHandler) # Used for migration from older OAuth class
+
+```
+
+Your service needs to handle the token migration
+```python3
+    def customDataHandler(self, data):
+        if data.get('token'):
+            LOGGER.info('Migrating tokens to the new version')
+            # Save token data to the new oAuthTokens custom
+            Custom(self.poly, 'oauthTokens').load(data['token'], True)
+
+            # Save customdata without the key 'token'
+            newData = { key: value for key, value in data.items() if key != 'token' }
+            Custom(self.poly, 'customdata').load(newData, True)
+            
+            # Continue processing as if it was in the right place
+            self.customNsHandler('oauthTokens', data['token'])
+```
+
+After migrating, next time the plugin restarts, it will receive a polyglot.CUSTOMNS event with the key 'oauthTokens'
+with the migrated tokens (or renewed tokens if they got renewed).
+
+
+
+
+
