@@ -103,6 +103,8 @@ class Node(object):
         else:
             NLOGGER.debug('{}:{} No change in {}\'s value'.format(self.address, self.name, driver))
 
+        return changed
+
     def reportDriver(self, driver, force):
         """ Send existing driver value to ISY """
         drv = next((item for (item,d) in enumerate(self.drivers) if d['driver'] == driver), None)
