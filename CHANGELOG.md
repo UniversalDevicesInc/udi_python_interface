@@ -1,5 +1,13 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.0
+- Added methods to update and get oAuth parameters 
+- OAuth class is now included in the interface
+- Custom class now has an update method (in addition to load)
+- Custom handling has been refactored to support oAuth parameters updated by the plugin
+- setDriver now returns a flag indicating if the value is different than before
+- Updated oAuth doc
+
 ### 3.2.6
 - Revert SSL error retries from 3.2.5. This did not help as when there is an SSL publish error, the connection drops. 
 
