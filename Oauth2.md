@@ -105,7 +105,7 @@ class MyService(OAuth):
 
     def oauthHandler(self, token):
         # This provides initial oAuth tokens following user authentication
-        super()._oauthHandler(token)
+        super().oauthHandler(token)
 
     # Your service may need to access custom params as well...
     def customParamsHandler(self, data):
