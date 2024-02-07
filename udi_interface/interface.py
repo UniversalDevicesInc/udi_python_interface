@@ -844,7 +844,7 @@ class Interface(object):
             self.inQueue.task_done()
 
     def _handleInput(self, key, item, published):
-        #LOGGER.info('PROCESS {} message {} from Polyglot'.format(key, item))
+        LOGGER.debug('PROCESS {} message {} from Polyglot'.format(key, item))
         if key == 'config':
             self._inConfig(item)
         elif key == 'custom':
