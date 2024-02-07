@@ -563,6 +563,11 @@ class Interface(object):
                 done = True
         LOGGER.debug("MQTT: Done")
 
+    """
+    _get_server_data() reads the server.json.
+    It is now only called on startup, if version is not passed to the start() method, 
+    and in checkProfile() if the node server uses it.
+    """
     def _get_server_data(self):
         """
         _get_server_data: Loads the server.json and returns as a dict
@@ -1090,8 +1095,6 @@ class Interface(object):
         for _, thread in self._threads.items():
             thread.start()
 
-        self._get_server_data()
-
         # process version and supported options from node server
         if version != None:
             if isinstance(version, dict):
@@ -1099,6 +1102,7 @@ class Interface(object):
                     self.ns_config['version'] = version['version']
                 else:
                     LOGGER.warning('No node server version specified. Using deprecated server.json version')
+                    self._get_server_data()
                     self.ns_config['version'] = self.serverdata['version']
 
                 if 'requestId' in version:
@@ -1107,6 +1111,7 @@ class Interface(object):
                 self.ns_config['version'] = version
         else:
             LOGGER.warning('No node server version specified. Using deprecated server.json version')
+            self._get_server_data()
             self.ns_config['version'] = self.serverdata['version']
 
     def ready(self):
@@ -1430,6 +1435,8 @@ class Interface(object):
         """
         LOGGER.debug('check_profile: force={} build_profile={}'.format(
             force, build_profile))
+
+        self._get_server_data()
 
         cdata = self._ifaceData.profile_version
 
