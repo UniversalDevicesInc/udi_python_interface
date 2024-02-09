@@ -1091,6 +1091,9 @@ class Interface(object):
     to be API.
     """
     def start(self, version=None):
+        """ If we don't load server.json, we will at least initialize self.serverdata and set the version """
+        self.serverdata = {}
+
         """ Initiate the MQTT connection and start communication with Polyglot """
         for _, thread in self._threads.items():
             thread.start()
@@ -1099,6 +1102,7 @@ class Interface(object):
         if version != None:
             if isinstance(version, dict):
                 if 'version' in version:
+                    self.serverdata['version'] = version['version']
                     self.ns_config['version'] = version['version']
                 else:
                     LOGGER.warning('No node server version specified. Using deprecated server.json version')
@@ -1108,6 +1112,7 @@ class Interface(object):
                 if 'requestId' in version:
                     self.ns_config['requestId'] = version['requestId']
             elif isinstance(version, str):
+                self.serverdata['version'] = version
                 self.ns_config['version'] = version
         else:
             LOGGER.warning('No node server version specified. Using deprecated server.json version')
