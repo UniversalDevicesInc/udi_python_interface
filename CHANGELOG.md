@@ -1,5 +1,9 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.1
+- Ensure the interface does not use paho-mqtt version 2 
+- Don't load server.json if we don't need it.
+
 ### 3.3.0
 - Added methods to update and get oAuth parameters 
 - OAuth class is now included in the interface
