@@ -176,8 +176,11 @@ class Custom(dict):
     def items(self):
         return self._rawdata.items()
 
-    def get(self, key):
-        return self.__getitem__(key)
+    def get(self, key, default=None):
+        if key in self._rawdata:
+            return self.__getitem__(key)
+        else:
+            return default
 
     def values(self):
         return self._rawdata.values()
