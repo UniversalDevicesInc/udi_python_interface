@@ -124,18 +124,22 @@ class Node(object):
     def reportDrivers(self):
         NLOGGER.info('Updating All Drivers to ISY for {}({})'.format(
             self.name, self.address))
-        #self.updateDrivers(self.drivers)
-        message = {'set': []}
-        for driver in self.drivers:
-            message['set'].append(
-                {
-                    'address': self.address,
-                    'driver': driver['driver'],
-                    'value': driver['value'],
-                    'uom': driver['uom'],
-                    'text': driver.get('text')
-                })
-        self.poly.send(message, 'status')
+
+        if self.drivers:
+            message = {'set': []}
+            for driver in self.drivers:
+                message['set'].append(
+                    {
+                        'address': self.address,
+                        'driver': driver['driver'],
+                        'value': driver['value'],
+                        'uom': driver['uom'],
+                        'text': driver.get('text')
+                    })
+            self.poly.send(message, 'status')
+        else:
+            NLOGGER.debug('There are no drivers to report on {}({})'.format(
+            self.name, self.address))
 
     def query(self):
         self.reportDrivers()
