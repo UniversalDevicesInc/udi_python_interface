@@ -900,6 +900,8 @@ class Interface(object):
                         value = json.loads(item.get(customKey))
                     except TypeError as e:
                         value = item.get(customKey)
+                    except JSONDecodeError as e:
+                        value = item.get(customKey)
 
                     pub.publish(self.CUSTOMNS, None, customKey, value)
         elif key == 'getIsyInfo':
