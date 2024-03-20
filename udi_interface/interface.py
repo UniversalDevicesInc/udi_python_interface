@@ -1,6 +1,7 @@
 
 from .polylogger import LOGGER
 import json
+from json.decoder import JSONDecodeError
 import base64
 import os
 import warnings
@@ -898,9 +899,7 @@ class Interface(object):
                 elif customKey == 'nsdata':
                     try:
                         value = json.loads(item.get(customKey))
-                    except TypeError as e:
-                        value = item.get(customKey)
-                    except JSONDecodeError as e:
+                    except (TypeError, JSONDecodeError) as e:
                         value = item.get(customKey)
 
                     pub.publish(self.CUSTOMNS, None, customKey, value)
