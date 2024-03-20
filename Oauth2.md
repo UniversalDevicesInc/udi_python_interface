@@ -101,7 +101,7 @@ class MyService(OAuth):
     # The OAuth class needs to be hooked to these 2 handlers
     def customNsHandler(self, key, data):
         # This provides the oAuth config (key='oauth') and saved oAuth tokens (key='oauthTokens))
-        super()._customNsHandler(key, data)
+        super().customNsHandler(key, data)
 
     def oauthHandler(self, token):
         # This provides initial oAuth tokens following user authentication
