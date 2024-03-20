@@ -1,5 +1,13 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.3
+- Trap JSONDecodeError when parsing nsdata
+- Don't report drivers if there are none
+- Fixed typo in oAuth sample code
+
+### 3.3.2
+- Enhance Custom class get method: Allow to pass a default value
+
 ### 3.3.1
 - Ensure the interface does not use paho-mqtt version 2 
 - Don't load server.json if we don't need it.
