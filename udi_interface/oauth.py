@@ -6,6 +6,7 @@ Copyright (C) 2023 Universal Devices
 MIT License
 """
 import json
+from urllib.parse import urlencode
 import requests
 from datetime import timedelta, datetime
 from .polylogger import LOGGER
@@ -84,7 +85,7 @@ class OAuth:
             for key, value in self._oauthConfig['token_parameters'].items():
                 data[key] = value
 
-        LOGGER.debug(f"Token refresh body { json.dumps(data) }")
+        LOGGER.debug(f"Token refresh body { urlencode(data) }")
 
         try:
             response = requests.post(self._oauthConfig['token_endpoint'], data=data)
@@ -102,6 +103,7 @@ class OAuth:
 
         except requests.exceptions.HTTPError as error:
             LOGGER.error(f"Failed to refresh oAuth token: { error }")
+            LOGGER.error(response.text)
             # NOTE: If refresh tokens fails, we keep the existing tokens available.
 
     # Gets the access token, and refresh if necessary
