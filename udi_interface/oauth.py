@@ -93,6 +93,11 @@ class OAuth:
             LOGGER.info('Refreshing oAuth tokens successfully')
             LOGGER.debug(f"Token refresh result [{ type(token) }]: { token }")
             self._setExpiry(token)
+
+            # Keep anything that we had before in there.
+            # If we don't get a new refresh tokens, then keep the one we had
+            token = { **self._oauthTokens, **token }
+
             self._oauthTokens.load(token)
 
         except requests.exceptions.HTTPError as error:
