@@ -1,5 +1,11 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.4
+- When refreshing tokens, keep any key that we had that is not updated.
+- Log response body when refresh tokens fails
+- Log request body in correct format (query string instead of json)
+- Remove test code that made the tokens refresh unnecessarily
+
 ### 3.3.3
 - Trap JSONDecodeError when parsing nsdata
 - Don't report drivers if there are none
