@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
 """
 Polyglot oAuth interface
-Copyright (C) 2023 Universal Devices
+Copyright (C) 2024 Universal Devices
 
 MIT License
 """
@@ -11,6 +10,7 @@ import requests
 from datetime import timedelta, datetime
 from .polylogger import LOGGER
 from .custom import Custom
+import threading
 
 '''
 OAuth is the class to manage oauth tokens to an external service.
@@ -24,8 +24,14 @@ class OAuth:
         # self._oauthConfig contains the oAuth configuration
         self._oauthConfig = Custom(polyglot, 'oauth')
 
+        # Flag to indicate that the oauth configuration has been initialized
+        self._oauthConfigInitialized = False
+
         # This is used only when using dynamic oauth configuration
         self._oauthConfigOverride = {}
+
+        # Mutex to protect _oauthConfig
+        self._lock = threading.Lock()
 
     # This is the result of the getAll we get on startup.
     def customNsHandler(self, key, data):
@@ -33,11 +39,20 @@ class OAuth:
 
         # This is our oAuth config
         if key == 'oauth':
-            # Set our internal oauth config & update the server as well (if it has changed)
-            self._oauthConfig.load(data)
+            # Acquire the mutex to protect the oauth config data from
+            # intervening changes made via the updateOauthSettings method
+            with self._lock:
 
-            # If we received an updateOauthSettings, this have precedence over nodeserver oauth config
-            self._oauthConfig.update(self._oauthConfigOverride, True)
+                # Set our internal oauth config 
+                # NOTE: this load() call will not update the server (save parameter defaults to False)
+                self._oauthConfig.load(data)
+
+                # If we received an updateOauthSettings, this have precedence over nodeserver oauth config
+                # NOTE: this update() call will update the server if any changes result from the update
+                self._oauthConfig.update(self._oauthConfigOverride)
+
+                # set flag indicating oauth config has been initialized
+                self._oauthConfigInitialized = True
 
             if self._oauthConfig['auth_endpoint'] is None:
                 LOGGER.error('oAuth configuration is missing auth_endpoint')
@@ -60,7 +75,8 @@ class OAuth:
     def oauthHandler(self, token):
         LOGGER.info('Received oAuth tokens: {}'.format(json.dumps(token)))
         self._setExpiry(token)
-        self._oauthTokens.load(token)
+        # Make sure tokens with added expiry key are written back to the server (save=True)
+        self._oauthTokens.load(token, save=True)
 
     def _setExpiry(self, token):
         # Add the expiry key, so that we can later check if the tokens are due to be expired
@@ -99,7 +115,8 @@ class OAuth:
             # If we don't get a new refresh tokens, then keep the one we had
             token = { **self._oauthTokens, **token }
 
-            self._oauthTokens.load(token)
+            # Make sure new tokens are written back to the server (save=True)
+            self._oauthTokens.load(token, save=True)
 
         except requests.exceptions.HTTPError as error:
             LOGGER.error(f"Failed to refresh oAuth token: { error }")
@@ -129,7 +146,13 @@ class OAuth:
     # This will update the oAuth settings with the changes in update
     def updateOauthSettings(self, update):
         self._oauthConfigOverride = update
-        self._oauthConfig.update(self._oauthConfigOverride)
+
+        # If the OAuth config has been initialized, then update it
+        if self._oauthConfigInitialized:
+            # Acquire the mutex to protect the OAuth config data
+            with self._lock:
+                # This update() call will update the server if any changes result from the update
+                self._oauthConfig.update(update)
 
     # Returns the local copy of the current settings
     def getOauthSettings(self):
