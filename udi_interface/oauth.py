@@ -83,7 +83,7 @@ class OAuth:
         token['expiry'] = (datetime.now() + timedelta(seconds=token['expires_in'])).isoformat()
 
     def _oAuthTokensRefresh(self):
-        LOGGER.debug(f"Refresh token before: { self._oauthTokens }")
+        LOGGER.debug(f"Refresh token before: {self._oauthTokens}")
         data = {
             'grant_type': 'refresh_token',
             'refresh_token': self._oauthTokens['refresh_token'],
@@ -101,25 +101,25 @@ class OAuth:
             for key, value in self._oauthConfig['token_parameters'].items():
                 data[key] = value
 
-        LOGGER.debug(f"Token refresh body { urlencode(data) }")
+        LOGGER.debug(f"Token refresh body {urlencode(data)}")
 
         try:
             response = requests.post(self._oauthConfig['token_endpoint'], data=data)
             response.raise_for_status()
             token = response.json()
             LOGGER.info('Refreshing oAuth tokens successfully')
-            LOGGER.debug(f"Token refresh result [{ type(token) }]: { token }")
+            LOGGER.debug(f"Token refresh result [{type(token)}]: {token}")
             self._setExpiry(token)
 
             # Keep anything that we had before in there.
             # If we don't get a new refresh tokens, then keep the one we had
-            token = { **self._oauthTokens, **token }
+            token = {**self._oauthTokens, **token}
 
             # Make sure new tokens are written back to the server (save=True)
             self._oauthTokens.load(token, save=True)
 
         except requests.exceptions.HTTPError as error:
-            LOGGER.error(f"Failed to refresh oAuth token: { error }")
+            LOGGER.error(f"Failed to refresh oAuth token: {error}")
             LOGGER.error(response.text)
             # NOTE: If refresh tokens fails, we keep the existing tokens available.
 
@@ -134,10 +134,10 @@ class OAuth:
             # If expired or expiring in less than 60 seconds, refresh
             if expiry is None or datetime.fromisoformat(expiry) - timedelta(seconds=60) < datetime.now():
 
-                LOGGER.info(f"Access tokens: Token is expired since { expiry }. Initiating refresh.")
+                LOGGER.info(f"Access tokens: Token is expired since {expiry}. Initiating refresh.")
                 self._oAuthTokensRefresh()
             else:
-                LOGGER.info(f"Access tokens: Token is still valid until { expiry }, no need to refresh")
+                LOGGER.info(f"Access tokens: Token is still valid until {expiry}, no need to refresh")
 
             return self._oauthTokens.get('access_token')
         else:
