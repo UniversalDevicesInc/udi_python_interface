@@ -1,4 +1,4 @@
-__version__ = '3.3.5'
+__version__ = '3.3.6'
 __description__ = 'UDI Python Interface for Polyglot version 3'
 __url__ = 'https://github.com/UniversalDevicesInc/udi_python_interface'
 __author__ = 'Universal Devices Inc.'
@@ -36,4 +36,4 @@ except Exception as error:
     # If logger was not able to start, at least write a crash.log file in the current directory
     writeCrashInfo(traceback.format_exc())
     # Will work if polylogger was able to initialize
-    LOGGER.error('UDI interface initializaton failure: {}'.format(traceback.format_exc()))
+    LOGGER.error('UDI interface initialization failure: {}'.format(traceback.format_exc()))

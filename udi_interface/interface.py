@@ -1243,7 +1243,7 @@ class Interface(object):
     # remove all illegal characters from node address
     def getValidAddress(self, name):
         name = bytes(name, 'utf-8').decode('utf-8','ignore')
-        return re.sub(r"[<>`~!@#$%^&*(){}[\]?/\\;:\"'\-]+", "", name.lower()[:14])
+        return re.sub(r"[<>`~!@#$%^&*(){}[\]?/\\;:\"'\-]+", "", name.lower())[:14]
     def isNameValid(self, name):
         rname = bytes(name, 'utf-8').decode('utf-8','ignore')
         # Remove <>`~!@#$%^&*(){}[]?/\;:"'` characters from name
