@@ -1,5 +1,11 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.6
+- Fix getValidAddress() - Truncate to 14 chars after removing illegal characters
+
+### 3.3.5
+- Fixes to oAuth config update 
+
 ### 3.3.4
 - When refreshing tokens, keep any key that we had that is not updated.
 - Log response body when refresh tokens fails
