@@ -21,7 +21,7 @@ setup(name='udi_interface',
         "requests",
         "pyisy >2.0, != 2.1.5, <3.0.0"
     ],
-    python_requires='>3.6',
+    python_requires='>3.9',
     zip_safe=False,
     # See https://pypi.python.org/pypi?%3Aaction=list_classifiers
     classifiers=[
@@ -39,5 +39,6 @@ setup(name='udi_interface',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9'
+        'Programming Language :: Python :: 3.9', 
+        'Programming Language :: Python :: 3.11'
     ])
