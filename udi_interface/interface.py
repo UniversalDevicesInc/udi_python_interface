@@ -526,7 +526,7 @@ class Interface(object):
             # only if certs exist!
             if exists(cert) and exists(key):
                 LOGGER.info('Using SSL cert: {} key: {} ca: {}'.format(cert, key, cafile))
-                self.sslContext = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH, cafile=cafile)
+                self.sslContext = ssl.create_default_context(ssl.Purpose.SERVER_AUTH, cafile=cafile)
                 self.sslContext.load_cert_chain(cert, key)
                 self._mqttc.tls_set_context(self.sslContext)
                 self._mqttc.tls_insecure_set(True)
