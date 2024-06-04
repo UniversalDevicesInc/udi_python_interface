@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.7
+- Fix to MQTT SSL connection following python upgrade
+
 ### 3.3.6
 - Fix getValidAddress() - Truncate to 14 chars after removing illegal characters
 
