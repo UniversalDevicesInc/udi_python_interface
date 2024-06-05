@@ -28,5 +28,5 @@ Use NumPy/SciPy Docstrings
 
 To make a release
 - Set the version in __init__.py
-- make build
-- make publish
+- Commit & push the changes
+- Use the github action "Upload Python package" 

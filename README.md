@@ -1,8 +1,6 @@
-![Test And Publish](https://github.com/UniversalDevicesInc/udi-python-interface/workflows/Publish%20PyPI%20and%20TestPyPI/badge.svg "Test and Publish")
-
 # UDI Python Interface Module for Polyglot version 3
 
-This is the PG3 interface API module that is portable to be imported into your Python 3.4+ based NodeServers.
+This is the PG3 interface API module that is portable to be imported into your Python 3.11+ based NodeServers.
 
 ### Installation
 
@@ -33,10 +31,6 @@ When you start building a NodeServer you are helping build the free and open Int
 To get started, [use the python template.](https://github.com/UniversalDevicesInc/udi-poly-template-python)
 
 From there just read the code itself, it is fully explained step by step.
-
-### How to Enable your NodeServer in the Cloud
-
-[Link to PGC Interface](https://github.com/UniversalDevicesInc/pgc-python-interface/blob/master/README.md)
 
 ### Controlling logging
 
