@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.9
+- Set the MQTT client id correctly (Regression bug from 3.3.8). This prevented PG3 from seeing the correct plugin connected status.
+
 ### 3.3.8
 - Updated paho-mqtt to 2.1.0
 
