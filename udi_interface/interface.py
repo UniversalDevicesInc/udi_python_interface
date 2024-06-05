@@ -251,7 +251,7 @@ class Interface(object):
             target=self._startMqtt, name='Interface')
         self._threads['input'] = Thread(
             target=self._parseInput, name='Command')
-        self._mqttc = mqtt.Client(self.id, True)
+        self._mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1)
         self._mqttc.on_connect = self._connect
         self._mqttc.on_message = self._message
         self._mqttc.on_subscribe = self._subscribe

@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.8
+- Updated paho-mqtt to 2.1.0
+
 ### 3.3.7
 - Fix to MQTT SSL connection following python upgrade
 

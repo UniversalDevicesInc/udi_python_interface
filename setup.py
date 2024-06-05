@@ -14,7 +14,7 @@ setup(name='udi_interface',
     license=metadata['license'],
     packages=find_packages(),
     install_requires=[
-        "paho-mqtt>=1.6.1, <2.0.0",
+        "paho-mqtt>=2.1.0",
         "python-dotenv",
         "markdown2",
         "netifaces",
