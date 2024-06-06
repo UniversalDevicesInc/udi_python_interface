@@ -243,6 +243,7 @@ class Interface(object):
         self.connected = False
         self.subscribed = False
         self.uuid = self.pg3init['uuid']
+        self.pg3Version = self.pg3init['pg3Version']
         self.profileNum = str(self.pg3init['profileNum'])
         self.id = '{}_{}'.format(self.uuid, self.profileNum)
         self.topicInput = 'udi/pg3/ns/clients/{}'.format(self.id)
@@ -373,7 +374,7 @@ class Interface(object):
             inputCmds = ['query', 'command', 'addnode', 'stop',
                          'status', 'shortPoll', 'longPoll', 'delete',
                          'config', 'getIsyInfo', 'getAll', 'custom', 'setLogLevel',
-                         'getNsInfo', 'discover', 'nsdata', 'setController',
+                         'getNsInfo', 'discover', 'nsdata', 'setController', 'setPoll',
                          'oauth', 'webhook', 'bonjour' ]
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
@@ -1059,6 +1060,8 @@ class Interface(object):
                 LOGGER.error('Failed to set {}: {}'.format(key, err), exc_info=True)
         elif key == 'setController':
             LOGGER.debug('connection status node/driver update')
+        elif key == 'setPoll':
+            LOGGER.debug('poll values successfully updated')
         elif key == 'webhook':
             pub.publish(self.WEBHOOK, None, item)
         elif key == 'bonjour':
@@ -1178,6 +1181,49 @@ class Interface(object):
         """
 
         return node
+
+
+    def pg3MinimumVersion(self, minimumVersion):
+        """
+        Checks if a given version meets a minimum version requirement.
+
+        Args:
+            minimumVersion (str): The minimum version required, in the format "major.minor.patch".
+
+        Returns:
+            bool: True if the version meets or exceeds the minimum version, False otherwise.
+        """
+
+        version_parts = [int(part) for part in self.pg3Version.split('.')]
+        minimum_parts = [int(part) for part in minimumVersion.split('.')]
+
+        for i in range(3):
+            if version_parts[i] < minimum_parts[i]:
+                return False
+            elif version_parts[i] > minimum_parts[i]:
+                return True
+
+        return True
+
+    def setPoll(self, short=None, long=None):
+        if short is None and long is None:
+            raise ValueError("Either 'short' or 'long' parameter must be provided.")
+
+        minimumVersion = '3.2.24'
+        if self.pg3MinimumVersion(minimumVersion):
+            poll = {}
+
+            if short is not None:
+                poll['short'] = short
+            if long is not None:
+                poll['long'] = long
+
+            message = {
+                'setPoll': poll
+            }
+            self.send(message, 'system')
+        else:
+            LOGGER.error('setPoll failed. PG3 version {} < {}'.format(self.pg3Version, minimumVersion))
 
     def getConfig(self):
         """ Returns a copy of the last config received. """

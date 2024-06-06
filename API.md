@@ -380,6 +380,7 @@ __getValidAddress(address)__ Remove characters that are considered illegal for n
 ```
 
 * __setController(node_address, driver)__, Tell PG3 what node and driver it should update with the connection status.  If not set, connection status will only be visible in the UI.
+* __setPoll(short, long)__, Sets the short and/or long poll values.
 * __udm_alert(title, body)__, Push a notification message to UD Mobile.
 * __runForever()__, run the main message handling loop.  This waits for messages from polyglot and appropriately notifies the node server.
 
