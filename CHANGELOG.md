@@ -1,5 +1,11 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.11
+- Allow Polyglot_config.md to contained fenced code blocks & cuddled lists.
+
+### 3.3.10
+- Allow plugin to change the poll values
+
 ### 3.3.9
 - Set the MQTT client id correctly (Regression bug from 3.3.8). This prevented PG3 from seeing the correct plugin connected status.
 

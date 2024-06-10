@@ -1430,7 +1430,7 @@ class Interface(object):
     def getMarkDownData(self, fileName):
         data = ''
         if os.path.isfile(fileName):
-            data = markdown2.markdown_path(fileName)
+            data = markdown2.markdown_path(fileName, extras=['fenced-code-blocks', 'cuddled-lists'])
 
         return data
 
