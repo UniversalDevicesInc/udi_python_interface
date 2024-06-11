@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.12
+- Log timestamp milliseconds with a leading dot
+
 ### 3.3.11
 - Allow Polyglot_config.md to contained fenced code blocks & cuddled lists.
 
