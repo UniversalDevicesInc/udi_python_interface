@@ -6,6 +6,7 @@ from logging import handlers as log_handlers
 import warnings
 import shutil
 
+logging.Formatter.default_msec_format = '%s.%03d'
 
 class PolyLogger:
 
