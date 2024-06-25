@@ -546,7 +546,9 @@ class Interface(object):
         done = False
         while not done:
             try:
-                self._mqttc.connect_async('{}'.format(self._server), int(self._port), 10)
+                keepalive = 300
+                LOGGER.info("MQTT keepalive is {} seconds.".format(keepalive))
+                self._mqttc.connect_async('{}'.format(self._server), int(self._port), keepalive)
                 self._mqttc.loop_forever()
                 done = True
             except ssl.SSLError as e:
