@@ -252,7 +252,7 @@ class Interface(object):
             target=self._startMqtt, name='Interface')
         self._threads['input'] = Thread(
             target=self._parseInput, name='Command')
-        self._mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1, self.id)
+        self._mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2, self.id)
         self._mqttc.on_connect = self._connect
         self._mqttc.on_message = self._message
         self._mqttc.on_subscribe = self._subscribe
@@ -306,7 +306,7 @@ class Interface(object):
     def subscribe(self, topic, callback, address=None):
         pub.subscribe(topic, callback, address)
 
-    def _connect(self, mqttc, userdata, flags, rc):
+    def _connect(self, mqttc, userdata, flags, reason_code, properties):
         """
         The callback for when the client receives a CONNACK response from
         the server.
@@ -316,15 +316,15 @@ class Interface(object):
         :param mqttc: The client instance for this callback
         :param userdata: The private userdata for the mqtt client. Not used in Polyglot
         :param flags: The flags set on the connection.
-        :param rc: Result code of connection, 0 = Success, anything else is a failure
+        :param reason_code: Result code of connection, 0 = Success, anything else is a failure
+        :param properties
         """
         if current_thread().name != "MQTT":
             current_thread().name = "MQTT"
-        if rc == 0:
+        if reason_code == 'Success':
             self.connected = True
             results = []
-            LOGGER.info("MQTT Connected with result code " +
-                        str(rc) + " (Success)")
+            LOGGER.info('MQTT Connected with Reason code: {}'.format(reason_code))
 
             # Publish connection status and set up will
             if self.using_mosquitto:
@@ -347,12 +347,13 @@ class Interface(object):
 
             self.subscribed = True
             Thread(target=self.send_thread).start()
-        elif rc == 2:
-            # Incorrect identifier, nothing to do but exit
-            LOGGER.error("MQTT Failed to connect, invalid identifier")
-            os._exit(2)
+        # elif rc == 2:
+        #     # Incorrect identifier, nothing to do but exit
+        #     LOGGER.error("MQTT Failed to connect, invalid identifier")
+        #     os._exit(2)
         else:
-            LOGGER.error("MQTT Failed to connect. Result code: " + str(rc))
+            LOGGER.error("MQTT Failed to connect. Reason code: {}".format(reason_code))
+            os._exit(2)
 
     def _message(self, mqttc, userdata, msg):
         """
@@ -455,24 +456,17 @@ class Interface(object):
                          message, exc_info=True)
 
 
-    def _disconnect(self, mqttc, userdata, rc):
+    def _disconnect(self, mqttc, userdata, flags, reason_code, properties):
         """
         The callback for when a DISCONNECT occurs.
 
         :param mqttc: The client instance for this callback
         :param userdata: The private userdata for the mqtt client. Not used in Polyglot
-        :param rc: Result code of connection, 0 = Graceful, anything else is unclean
-          0: Connection successful.
-          1: Connection refused – incorrect protocol version.
-          2: Connection refused – invalid client identifier.
-          3: Connection refused – server unavailable.
-          4: Connection refused – bad username or password.
-          5: Connection refused – not authorised.
+        :param reason_code: Result code of connection, 0 = Success, anything else is a failure
         """
         self.connected = False
-        if rc != 0:
-            LOGGER.info(
-                "MQTT Unexpected disconnection. Trying to reconnect in 10 seconds. rc: {}".format(rc))
+        if reason_code != 'Success':
+            LOGGER.info("MQTT Unexpected disconnection. Reason code: {}. Sent by server: {}. Retry in 10 seconds.".format(reason_code, flags.is_disconnect_packet_from_server))
 
             done = False
             while not done:
@@ -494,15 +488,16 @@ class Interface(object):
         if DEBUG:
             LOGGER.info('MQTT Log - {}: {}'.format(str(level), str(string)))
 
-    def _subscribe(self, mqttc, userdata, mid, granted_qos):
+    def _subscribe(self, mqttc, userdata, mid, reason_codes, properties):
         """ Callback for Subscribe message. Unused currently. """
         LOGGER.info(
-            "MQTT Subscribed Succesfully for Message ID: {} - QoS: {}".format(str(mid), str(granted_qos)))
+            "MQTT Subscribed Successfully for Message ID: {}. Reason codes: {}".format(str(mid), [str(code) for code in reason_codes]))
 
-    def _publish(self, mqttc, userdata, mid):
+    # def _publish(self, mqttc, userdata, mid):
+    def _publish(self, mqttc, userdata, mid, reason_codes, properties):
         """ Callback for publish message. Unused currently. """
         if DEBUG:
-            LOGGER.info("MQTT Published message ID: {}".format(str(mid)))
+            LOGGER.info("MQTT Published message ID: {}. Reason codes: {}".format(str(mid), [str(code) for code in reason_codes]))
 
     def _startMqtt(self):
         """
