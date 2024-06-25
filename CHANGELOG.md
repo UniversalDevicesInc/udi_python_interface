@@ -1,5 +1,9 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.13
+- Updated paho-mqtt callbacks to version 2
+- Changed MQTT keepalive from 10 seconds to 5 minutes
+
 ### 3.3.12
 - Log timestamp milliseconds with a leading dot
 
