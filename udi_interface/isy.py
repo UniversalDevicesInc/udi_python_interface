@@ -1,4 +1,5 @@
 #from .polylogger import LOGGER
+import urllib3
 import logging
 import requests
 import pyisy as PYISY
@@ -7,6 +8,10 @@ from pyisy import constants
 ILOGGER = logging.getLogger(__name__)
 ILOGGER.setLevel("ERROR")
 CONSTANTS = constants
+
+# requests.get() with verify=False creates a warning. InsecureRequestWarning: Unverified HTTPS request is being made to host '127.0.0.1'.
+# We use a self-signed, so we don't care. Disable the warning.
+urllib3.disable_warnings()
 
 class ISY(object):
 
@@ -61,7 +66,8 @@ class ISY(object):
             isy_cmd = 'http://' + self._isy_ip + ':' + str(self._isy_port) + command
 
         try:
-            c = requests.get(isy_cmd, auth=(self._isy_user, self._isy_pass))
+            # If using eisy-ui, it is a self signed, so we need to have verify=False
+            c = requests.get(isy_cmd, auth=(self._isy_user, self._isy_pass), verify=False)
             results = c.text
             c.close()
         except Exception as e:
@@ -82,7 +88,7 @@ class ISY(object):
                             username = self._isy_user, 
                             password = self._isy_pass, 
                             use_https = self._isy_https, 
-                            tls_ver = 1.1,
+                            tls_ver = 1.2,
                             webroot = "")
             return isy
         except ValueError as err:
