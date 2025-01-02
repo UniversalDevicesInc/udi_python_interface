@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.15
+- Added polyglot.DELNODE events
+
 ### 3.3.14
 - Plugins which connects to IoX can now use TLS
 
