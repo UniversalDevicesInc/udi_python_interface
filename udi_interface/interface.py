@@ -71,7 +71,8 @@ class pub(object):
          [18, 'discover', None],
          [19, 'oauth', None],
          [20, 'webhook', None],
-         [21, 'bonjour', None]
+         [21, 'bonjour', None],
+         [22, 'del_node_done', None]
          ]
 
     # topics is a set of key/value pairs holding the callbacks for each
@@ -216,6 +217,7 @@ class Interface(object):
     OAUTH             = pub.topic_list[19][0]
     WEBHOOK           = pub.topic_list[20][0]
     BONJOUR           = pub.topic_list[21][0]
+    DELNODEDONE       = pub.topic_list[22][0]
 
     """
     Polyglot Interface Class
@@ -372,7 +374,7 @@ class Interface(object):
         """
         try:
             # these are queued so that we can process them in order.
-            inputCmds = ['query', 'command', 'addnode', 'stop',
+            inputCmds = ['query', 'command', 'addnode', 'removenode', 'stop',
                          'status', 'shortPoll', 'longPoll', 'delete',
                          'config', 'getIsyInfo', 'getAll', 'custom', 'setLogLevel',
                          'getNsInfo', 'discover', 'nsdata', 'setController', 'setPoll',
@@ -779,7 +781,7 @@ class Interface(object):
         if self.isInitialConfig:
             tried starting the node here, but this really only works
             for the controller node.  And it is just slightly earlier
-            than the doing it in the _handleResult after being notified
+            than the doing it in the _handleAddNode after being notified
             that the node was added in Polyglot.
         """
 
@@ -979,7 +981,9 @@ class Interface(object):
             else:
                 LOGGER.error('_parseInput: node address {} does not exist. {}'.format(item['address'], item))
         elif key == 'addnode':
-            self._handleResult(item)
+            self._handleAddNode(item)
+        elif key == 'removenode':
+            self._handleDelNode(item)
         elif key == 'delete':
             pub.publish(self.DELETE, None)
         elif key == 'shortPoll':
@@ -1064,7 +1068,7 @@ class Interface(object):
         elif key == 'bonjour':
             pub.publish(self.BONJOUR, None, item)
 
-    def _handleResult(self, result):
+    def _handleAddNode(self, result):
         try:
             if result.get('address'):
                 """
@@ -1085,7 +1089,18 @@ class Interface(object):
             #else:
             #    del self.nodes_internal[result.get('address')]
         except (KeyError, ValueError) as err:
-            LOGGER.error('handleResult: {}'.format(err), exc_info=True)
+            LOGGER.error('handleAddNode: {}'.format(err), exc_info=True)
+
+    def _handleDelNode(self, result):
+        try:
+            if result.get('address'):
+                """
+                We get here when Polyglot has finished deleting a node
+                """
+                # Notify listeners that node has been deleted
+                pub.publish(self.DELNODEDONE, None, result)
+        except (KeyError, ValueError) as err:
+            LOGGER.error('handleDelNode: {}'.format(err), exc_info=True)
 
     """
     Methods below are callable by the nodeserver proper and are considered
