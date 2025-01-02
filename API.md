@@ -156,6 +156,7 @@ The following event_id's are defined:
   * STOP              - Subscribe to node server stop events
   * DELETE            - Subscribe to node server delete events
   * ADDNODEDONE       - Subscribe to node add complete events
+  * DELNODEDONE       - Subscribe to node delete complete events
   * CUSTOMDATA        - Subscribe to custom data 
   * CUSTOMTYPEDDATA   - Subscribe to typed custom data
   * CUSTOMPARAMS      - Subscribe to parameter data
