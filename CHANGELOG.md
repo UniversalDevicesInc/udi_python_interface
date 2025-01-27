@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.16
+- Enhanced webhook support
+
 ### 3.3.15
 - Added polyglot.DELNODE events
 

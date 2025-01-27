@@ -16,6 +16,7 @@ except ImportError:
 import re
 import sys
 from threading import Thread, current_thread, Lock
+from datetime import datetime
 import time
 import netifaces
 import logging
@@ -229,7 +230,7 @@ class Interface(object):
 
     __exists = False
 
-    def __init__(self, classes, envVar=None):
+    def __init__(self, classes, options=None):
         if self.__exists:
             warnings.warn('Only one Interface is allowed.')
             return
@@ -239,6 +240,8 @@ class Interface(object):
         except:
             LOGGER.critical('Failed to parse init. Exiting...')
             sys.exit(1)
+        self._options = options if options is not None else {}
+        self._enableWebhook = self._options.get('enableWebhook', False)
         self.config = None
         self.isInitialConfig = False
         self.currentLogLevel = 10
@@ -332,7 +335,7 @@ class Interface(object):
             if self.using_mosquitto:
                 connected = {"connected": [{}]}
                 self._mqttc.publish('udi/pg3/connections/ns/{}'.format(self.id), json.dumps(connected), retain=True)
-                failed = {"disconnected": [{}]}
+                failed = self._disconnectedMessage()
                 self._mqttc.will_set('udi/pg3/connections/ns/{}'.format(self.id), json.dumps(failed), qos=0, retain=True)
 
             results.append((self.topicInput, tuple(
@@ -542,7 +545,7 @@ class Interface(object):
 
         if self.using_mosquitto:
             # Set up the will, do we need this here?
-            failed = {"disconnected": [{}]}
+            failed = self._disconnectedMessage()
             self._mqttc.will_set('udi/pg3/connections/ns/{}'.format(self.id), json.dumps(failed), qos=0, retain=True)
 
         done = False
@@ -618,7 +621,7 @@ class Interface(object):
             LOGGER.info('Disconnecting from MQTT... {}:{}'.format(
                 self._server, self._port))
             self._mqttc.loop_stop()
-            disconnect = {"disconnected": [{}]}
+            disconnect = self._disconnectedMessage()
             self._mqttc.publish('udi/pg3/connections/ns/{}'.format(self.id), json.dumps(disconnect), retain=True)
             self._mqttc.disconnect()
 
@@ -1627,6 +1630,26 @@ class Interface(object):
         LOGGER.debug('Returning webhook response')
         self.send({'webhook': { 'body': body, 'status': status } }, 'portal')
 
+    """ Node server method to enable webhooks. Can optionally pass a config object to portal  """
+    def webhookStart(self, config=None):
+        if not self._enableWebhook:
+            raise Exception("Webhooks are not enabled. Pass { \"enableWebhook\": True } in polyglot Interface second argument.")
+
+        LOGGER.info('Webhook start')
+
+        # Create the base webhook data
+        data = {
+            'uuid': self.uuid,
+            'profileNum': self.profileNum,
+            'timestamp': datetime.utcnow().isoformat() + 'Z'
+        }
+
+        # Add config if provided
+        if config is not None:
+            data['config'] = config
+
+        self.send({'webhookStart': data }, 'portal')
+
     """ Node server method to initiate a bonjour query on the network. Response is returned as a polyglot.BONJOUR event  """
     def bonjour(self, type, subtypes, protocol):
 
@@ -1647,3 +1670,12 @@ class Interface(object):
             }]
         }
         self.send(message, 'command')
+
+    def _disconnectedMessage(self):
+        message = {"disconnected": [{}]}
+
+        # If we are using webhooks, we need to tell portal. We can't send a second will, so we tell PG3 to do it for us
+        if self._enableWebhook:
+            message["webhookStop"] = [{}]
+
+        return message
