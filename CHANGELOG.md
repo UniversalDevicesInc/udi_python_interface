@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.17
+- getAccessToken is now thread safe
+
 ### 3.3.16
 - Enhanced webhook support
 

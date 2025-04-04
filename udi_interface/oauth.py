@@ -32,6 +32,7 @@ class OAuth:
 
         # Mutex to protect _oauthConfig
         self._lock = threading.Lock()
+        self._token_lock = threading.Lock()
 
     # This is the result of the getAll we get on startup.
     def customNsHandler(self, key, data):
@@ -126,22 +127,22 @@ class OAuth:
     # Gets the access token, and refresh if necessary
     # Should be called only after config is done
     def getAccessToken(self):
-        # Make sure we have received tokens before attempting to renew
+        with self._token_lock:
+            # Make sure we have received tokens before attempting to renew
+            if self._oauthTokens is not None and self._oauthTokens.get('refresh_token'):
+                expiry = self._oauthTokens.get('expiry')
 
-        if self._oauthTokens is not None and self._oauthTokens.get('refresh_token'):
-            expiry = self._oauthTokens.get('expiry')
+                # If expired or expiring in less than 60 seconds, refresh
+                if expiry is None or datetime.fromisoformat(expiry) - timedelta(seconds=60) < datetime.now():
 
-            # If expired or expiring in less than 60 seconds, refresh
-            if expiry is None or datetime.fromisoformat(expiry) - timedelta(seconds=60) < datetime.now():
+                    LOGGER.info(f"Access tokens: Token is expired since {expiry}. Initiating refresh.")
+                    self._oAuthTokensRefresh()
+                else:
+                    LOGGER.info(f"Access tokens: Token is still valid until {expiry}, no need to refresh")
 
-                LOGGER.info(f"Access tokens: Token is expired since {expiry}. Initiating refresh.")
-                self._oAuthTokensRefresh()
+                return self._oauthTokens.get('access_token')
             else:
-                LOGGER.info(f"Access tokens: Token is still valid until {expiry}, no need to refresh")
-
-            return self._oauthTokens.get('access_token')
-        else:
-            raise ValueError('Access token is not available')
+                raise ValueError('Access token is not available')
 
     # This will update the oAuth settings with the changes in update
     def updateOauthSettings(self, update):
