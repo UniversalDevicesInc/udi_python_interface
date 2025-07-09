@@ -70,6 +70,7 @@ class OAuth:
         # This is the saved copy of the oAuth tokens
         if key == 'oauthTokens':
             self._oauthTokens.load(data)
+            self._updateRefreshTimer()
 
     # User proceeded through oAuth authentication
     # The authorization_code has already been exchanged for access_token and refresh_token by PG3
@@ -78,10 +79,44 @@ class OAuth:
         self._setExpiry(token)
         # Make sure tokens with added expiry key are written back to the server (save=True)
         self._oauthTokens.load(token, save=True)
+        self._updateRefreshTimer()
 
     def _setExpiry(self, token):
         # Add the expiry key, so that we can later check if the tokens are due to be expired
         token['expiry'] = (datetime.now() + timedelta(seconds=token['expires_in'])).isoformat()
+
+        # Used for testing only - Simulate a shorter expiry
+        # token['expiry'] = (datetime.now() + timedelta(seconds=120)).isoformat()
+
+    # Triggered when loading, authorizing or refreshing (right after loading self._oauthTokens)
+    def _updateRefreshTimer(self):
+        expiry = self._oauthTokens.get('expiry')
+
+        # If no expiry time is set, we can't set up a timer
+        if not expiry:
+            LOGGER.error('Starting refresh timer: No expiry found on oAuthTokens')
+            return
+
+        # If we have an existing timer, cancel it
+        if hasattr(self, '_refreshTimer') and self._refreshTimer:
+            self._refreshTimer.cancel()
+            self._refreshTimer = None
+
+        # Convert expiry from ISO format string to datetime
+        refreshTime = datetime.fromisoformat(expiry) - timedelta(seconds=60)
+        now = datetime.now()
+
+        # If the refresh time has already passed, attempt refresh immediately
+        if refreshTime <= now:
+            LOGGER.info('Refresh token already expired at: {}. Attempting to renew.'.format(expiry))
+            self.getAccessToken()
+            return
+
+        # Create and start the timer
+        LOGGER.info('Refresh token will be refreshed at: {}.'.format(refreshTime.isoformat()))
+        delay = (refreshTime - now).total_seconds()
+        self._refreshTimer = threading.Timer(delay, lambda: self.getAccessToken())
+        self._refreshTimer.start()
 
     def _oAuthTokensRefresh(self):
         LOGGER.debug(f"Refresh token before: {self._oauthTokens}")
@@ -118,6 +153,7 @@ class OAuth:
 
             # Make sure new tokens are written back to the server (save=True)
             self._oauthTokens.load(token, save=True)
+            self._updateRefreshTimer()
 
         except requests.exceptions.HTTPError as error:
             LOGGER.error(f"Failed to refresh oAuth token: {error}")
