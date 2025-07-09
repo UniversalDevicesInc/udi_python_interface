@@ -103,7 +103,7 @@ class OAuth:
                 data[key] = value
 
         LOGGER.debug(f"Token refresh body {urlencode(data)}")
-
+        response = None
         try:
             response = requests.post(self._oauthConfig['token_endpoint'], data=data)
             response.raise_for_status()
@@ -121,7 +121,8 @@ class OAuth:
 
         except requests.exceptions.HTTPError as error:
             LOGGER.error(f"Failed to refresh oAuth token: {error}")
-            LOGGER.error(response.text)
+            if response is not None:
+                LOGGER.error(response.text)
             # NOTE: If refresh tokens fails, we keep the existing tokens available.
 
     # Gets the access token, and refresh if necessary
