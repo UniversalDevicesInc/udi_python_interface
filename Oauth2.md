@@ -30,8 +30,9 @@ The JSON needs the following information:
 In addition, these optional parameters can be used in the oAuth configuration.
 ```
 {
-  "scope": "The oauth scope", // This scope will be added to the auhorization request and to the token endpoint
-  "addRedirect": true,        // This will add the redirect_uri to the token endpoint 
+  "scope": "The oauth scope", // This scope will be added to the auhorization request
+  "addScope": true,           // This will add the scope to the token endpoint (Default is true)
+  "addRedirect": true,        // This will add the redirect_uri to the token endpoint (Default is false)
   "parameters": {},           // You can pass extra parameters to the authorization request
   "token_parameters": {}      // You can pass extra parameters to the token endpoint
 }

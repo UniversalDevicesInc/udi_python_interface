@@ -127,10 +127,12 @@ class OAuth:
             'client_secret': self._oauthConfig['client_secret']
         }
 
+        # Default is False
         if self._oauthConfig['addRedirect']:
             data['redirect_uri'] = 'https://my.isy.io/api/cloudlink/redirect'
 
-        if self._oauthConfig['scope']:
+        # Default is True
+        if self._oauthConfig['addScope'] is not False and self._oauthConfig['scope']:
             data['scope'] = self._oauthConfig['scope']
 
         if self._oauthConfig['token_parameters'] and isinstance(self._oauthConfig['token_parameters'], dict):
