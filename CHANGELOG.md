@@ -1,5 +1,9 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.3.18
+- Added addScope to the oAuth options
+- access token is refreshed automatically 60 seconds before expiry
+
 ### 3.3.17
 - getAccessToken is now thread safe
 
