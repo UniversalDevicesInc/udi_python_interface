@@ -1,5 +1,9 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.4.3
+- Add support for dynamic profiles
+- Synchronize version with PG3x 3.4.3
+
 ### 3.3.18
 - Added addScope to the oAuth options
 - access token is refreshed automatically 60 seconds before expiry
