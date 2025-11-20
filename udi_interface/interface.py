@@ -73,7 +73,9 @@ class pub(object):
          [19, 'oauth', None],
          [20, 'webhook', None],
          [21, 'bonjour', None],
-         [22, 'del_node_done', None]
+         [22, 'del_node_done', None],
+         [23, 'getprofile', None],
+         [24, 'updateprofile', None]
          ]
 
     # topics is a set of key/value pairs holding the callbacks for each
@@ -219,6 +221,8 @@ class Interface(object):
     WEBHOOK           = pub.topic_list[20][0]
     BONJOUR           = pub.topic_list[21][0]
     DELNODEDONE       = pub.topic_list[22][0]
+    PROFILE           = pub.topic_list[23][0]
+    UPDATEPROFILEDONE = pub.topic_list[24][0]
 
     """
     Polyglot Interface Class
@@ -381,7 +385,7 @@ class Interface(object):
                          'status', 'shortPoll', 'longPoll', 'delete',
                          'config', 'getIsyInfo', 'getAll', 'custom', 'setLogLevel',
                          'getNsInfo', 'discover', 'nsdata', 'setController', 'setPoll',
-                         'oauth', 'webhook', 'bonjour' ]
+                         'oauth', 'webhook', 'bonjour', 'getprofile', 'updateprofile' ]
 
             parsed_msg = json.loads(msg.payload.decode('utf-8'))
             #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
@@ -1070,6 +1074,10 @@ class Interface(object):
             pub.publish(self.WEBHOOK, None, item)
         elif key == 'bonjour':
             pub.publish(self.BONJOUR, None, item)
+        elif key == 'getprofile':
+            pub.publish(self.PROFILE, None, item)
+        elif key == 'updateprofile':
+            pub.publish(self.UPDATEPROFILEDONE, None, item)
 
     def _handleAddNode(self, result):
         try:
@@ -1393,6 +1401,100 @@ class Interface(object):
         message = {'installprofile': {'reboot': False}}
         self.send(message, 'system')
 
+    def getJsonProfile(self):
+        """ Request the current profile """
+        minimumVersion = '3.4.3'
+        if self.pg3MinimumVersion(minimumVersion):
+            LOGGER.info('Sending request to get the existing profile command to Polyglot.')
+            self.send({'getprofile': {}}, 'system')
+        else:
+            LOGGER.error('getJsonProfile failed. PG3 version {} < {}'.format(self.pg3Version, minimumVersion))
+
+    def updateJsonProfile(self, profile):
+        """
+        Update the JSON profile with validation for delete and add/replace operations.
+
+        Example:
+        {
+          "delete": {
+            "editors": [ "I3_LOAD_4", "I3_ON_OFF" ],
+            "nodedefs": [ "*" ],
+            "linkdefs": [ "*" ]
+          },
+          "editors": [ /* ... */ ],
+          "nodedefs": [ /* ... */ ],
+          "linkdefs": [ /* ... */ ]
+        }
+
+        delete Section Rules:
+        •	Optional. If omitted, nothing is deleted.
+        •	For each category (editors, nodedefs, linkdefs):
+        •	"*" → Delete all items in that category.
+        •	List of IDs → Delete only the specified items.
+        •	Items not listed are preserved.
+        Add/Replace Rules:
+        •	Any editors, nodedefs, or linkdefs provided:
+        •	Replace existing items with the same id.
+        •	Add new items if no matching id exists.
+
+        Raises:
+            ValueError: If profile validation fails
+        """
+        minimumVersion = '3.4.3'
+        if self.pg3MinimumVersion(minimumVersion):
+            if not isinstance(profile, dict):
+                LOGGER.error('Profile must be a dictionary')
+                raise ValueError('Profile must be a dictionary')
+
+            # Validate delete section if present
+            if 'delete' in profile:
+                delete_section = profile['delete']
+                if not isinstance(delete_section, dict):
+                    LOGGER.error('Delete section must be a dictionary')
+                    raise ValueError('Delete section must be a dictionary')
+
+                valid_categories = {'editors', 'nodedefs', 'linkdefs'}
+                invalid_categories = set(delete_section.keys()) - valid_categories
+
+                if invalid_categories:
+                    LOGGER.error(f'Invalid delete keys: {invalid_categories}')
+                    raise ValueError(f'Invalid delete keys: {invalid_categories}')
+
+                for category, items in delete_section.items():
+                    if not isinstance(items, list):
+                        LOGGER.error(f'Delete items for {category} must be a list of IDs')
+                        raise ValueError(f'Delete items for {category} must be a list of IDs')
+
+                    if isinstance(items, list) and not all(isinstance(item, str) for item in items):
+                        LOGGER.error(f'All IDs in {category} delete list must be strings')
+                        raise ValueError(f'All IDs in {category} delete list must be strings')
+
+            # Validate add/replace sections
+            valid_sections = {'editors', 'nodedefs', 'linkdefs'}
+            for section in valid_sections:
+                if section in profile:
+                    if not isinstance(profile[section], list):
+                        LOGGER.error(f'{section} must be a list')
+                        raise ValueError(f'{section} must be a list')
+
+                    for item in profile[section]:
+                        if not isinstance(item, dict):
+                            LOGGER.error(f'Each item in {section} must be a dictionary')
+                            raise ValueError(f'Each item in {section} must be a dictionary')
+
+                        if 'id' not in item:
+                            LOGGER.error(f'Each item in {section} must have an "id" field')
+                            raise ValueError(f'Each item in {section} must have an "id" field')
+
+                        if not isinstance(item['id'], str):
+                            LOGGER.error(f'ID field in {section} must be a string')
+                            raise ValueError(f'ID field in {section} must be a string')
+
+            # If all validations pass, send the message
+            LOGGER.info('Sending profile update request to Polyglot.')
+            self.send({'updateprofile': profile}, 'system')
+        else:
+            LOGGER.error('updateJsonProfile failed. PG3 version {} < {}'.format(self.pg3Version, minimumVersion))
 
     # TODO:
     def addNoticeTemp(self, key, text, delaySec):
