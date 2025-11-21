@@ -28,6 +28,7 @@ Use NumPy/SciPy Docstrings
 
 To make a release
 - Set the version in __init__.py
+- Update the changelog.md
 - Commit & push the changes
 - Create a new tag version_{version}, and push the tags
 - Login to github and create a release. Use the new tag.

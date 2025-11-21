@@ -232,6 +232,10 @@ __start({"version":"x.x.x", "requestId":[True|False]})__, to initiate the MQTT c
 
 __stop()__, to stop the MQTT connection.  This will be automatically called if Polyglot sends a stop command and the node server has not subscribed to the STOP event.  If the node server has subscribed to the STOP event, it is the node server's responsibility to call the interface.stop() method.
 
+__subscribe(event_id, callback, [address])__ to subscribe to events (See above).
+
+__unsubscribe(event_id, callback, [address])__ to unsubscribe from events.
+
 __ready()__, to let the interface know that we are configured to handle events. This should be called near the end of the controller node initialization after all the event callbacks have been registerd. 
 
 Calling other interface methods (other than __subscribe__) before calling __ready()__ may have unintended side effects as the interface has not yet received any configuration information from PG3.  Internally, __ready()__ triggers the interface to query PG3 for configuration data. 

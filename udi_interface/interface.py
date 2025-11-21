@@ -112,6 +112,43 @@ class pub(object):
             if item[0] == None or item[0] == address:
                 Thread(target=callback, args=item[1:]).start()
 
+    @staticmethod
+    def unsubscribe(topic, callback, address):
+        """
+        Removes a callback, address pair from a topic subscription.
+
+        Args:
+            topic: The topic ID to unsubscribe from
+            callback: The callback function to remove
+            address: The address associated with the callback
+
+        Returns:
+            bool: True if successfully unsubscribed, False if subscription not found
+
+        Raises:
+            IndexError: If the topic ID is out of range
+        """
+        if int(topic) >= len(pub.topic_list):
+            raise IndexError
+
+        topic_name = pub.topic_list[topic][1]
+
+        # Check if topic exists in topics dictionary
+        if topic_name not in pub.topics:
+            return False
+
+        # Find and remove the specific callback/address pair
+        subscription = [callback, address]
+        if subscription in pub.topics[topic_name]:
+            pub.topics[topic_name].remove(subscription)
+
+            # If this was the last subscription for this topic, remove the topic entry
+            if not pub.topics[topic_name]:
+                del pub.topics[topic_name]
+
+            return True
+
+        return False
 
     '''
     when we publish an event, we first push the event on to the backlog
@@ -314,6 +351,9 @@ class Interface(object):
 
     def subscribe(self, topic, callback, address=None):
         pub.subscribe(topic, callback, address)
+
+    def unsubscribe(self, topic, callback, address=None):
+        pub.unsubscribe(topic, callback, address)
 
     def _connect(self, mqttc, userdata, flags, reason_code, properties):
         """
