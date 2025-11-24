@@ -171,6 +171,8 @@ The following event_id's are defined:
   * OAUTH             - Subscribe to oauth token authentication data events 
   * WEBHOOK           - Subscribe to webhook data events
   * BONJOUR           - Subscribe to get responses from the bonjour mdns query
+  * PROFILE           - Subscribe to get profile data following a getJsonProfile()
+  * UPDATEPROFILEDONE - Subscribe to know when updateJsonProfile() has completed
 
 
 The data events will send the specific type of data, when that data changes in PG3.  For example, when the user changes a custom parameter, the CUSTOMPARAMS event will be published with the current (changed) custom parameter data.
@@ -219,6 +221,8 @@ Event handler prototypes:
  DISCOVER          def handler()
  OAUTH             def handler(token_data)
  WEBHOOK           def handler(webhook_data)
+ PROFILE           def handler(profile)
+ UPDATEPROFILEDONE def handler()
 ```
 #### The Interface class variables
 
@@ -371,9 +375,6 @@ __getValidAddress(address)__ Remove characters that are considered illegal for n
 * __setLogLevel__(level) send the specified level to Polyglot to store in its database. This level will then be sent back to the node server and set as the current log level.
 * __addLogLevel__(name, level, string\_name), Add a new log level to the logger and to the list displayed to the user.  'name' is the level name string (typically all upper case like DEBUG, WARNING, etc.) 'level' is the numeric value of new level, and string_name is the string to display to the user in the log level selector.  <BR> **NOTE** that this modifies the node server log level list which is stored as part of the node server configuration in PG3.  Thus you should only attempt to add items to the list after the config data has been recieved from PG3.  The best place to do this would be in a CONFIG event handler.  <BR>**NOTE2** that there is currently no way to remove or modify an item on the list other than replacing the whole list. See __setLogList()__ below.
 * __setLogList(list)__ Send the list of log levels for the frontend log level list selector. The 'list' is an array of __{display_name:LOGLEVEL}__ objects.  The user will be presented with the 'display_name' and when selected, it will set the log level to LOGLEVEL.  LOGLEVEL must be one of the valid levels supported by the logger or added via the addLevelName method in the logger. (DEPRECATED) <BR>Currently you have to pass all values including default ones to add yours:
-* __webhookResponse(response, status)__ Sends a response to the webhook request
-* __bonjour()__ Sends a request to make a bonjour (mDNS) query on the local network. The response is sent back in a polyglot.BONJOUR event
- 
 ```python
         poly.setLogList([
             {"Debug + Session":"DEBUG_SESSION"},
@@ -384,6 +385,17 @@ __getValidAddress(address)__ Remove characters that are considered illegal for n
             ])
 ```
 
+* __webhookResponse(response, status)__ Sends a response to the webhook request
+* __bonjour()__ Sends a request to make a bonjour (mDNS) query on the local network. The response is sent back in a polyglot.BONJOUR event
+* __getJsonProfile()__ Sends a request to get the plugin profile in json format.  The response is sent back in a polyglot.PROFILE event
+
+If waitResponse is True, getJsonProfile() will wait for the response and return the profile.
+If False, then it returns immediately. To get the response, you the plugin needs to listen to polyglot.PROFILE
+
+```python
+profile = polyglot.getJsonProfile({ 'waitResponse': True })
+```
+* __updateJsonProfile()__ Allows to send nodedefs/editors/linkdefs, or to remove some. A polyglot.UPDATEPROFILEDONE event is triggered when completed
 * __setController(node_address, driver)__, Tell PG3 what node and driver it should update with the connection status.  If not set, connection status will only be visible in the UI.
 * __setPoll(short, long)__, Sets the short and/or long poll values.
 * __udm_alert(title, body)__, Push a notification message to UD Mobile.

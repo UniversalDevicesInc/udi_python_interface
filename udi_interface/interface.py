@@ -15,7 +15,7 @@ except ImportError:
     import Queue as queue
 import re
 import sys
-from threading import Thread, current_thread, Lock
+from threading import Thread, current_thread, Lock, Event
 from datetime import datetime
 import time
 import netifaces
@@ -350,10 +350,10 @@ class Interface(object):
                     LOGGER.error('Invalid class in initial class list')
 
     def subscribe(self, topic, callback, address=None):
-        pub.subscribe(topic, callback, address)
+        return pub.subscribe(topic, callback, address)
 
     def unsubscribe(self, topic, callback, address=None):
-        pub.unsubscribe(topic, callback, address)
+        return pub.unsubscribe(topic, callback, address)
 
     def _connect(self, mqttc, userdata, flags, reason_code, properties):
         """
@@ -1441,14 +1441,71 @@ class Interface(object):
         message = {'installprofile': {'reboot': False}}
         self.send(message, 'system')
 
-    def getJsonProfile(self):
-        """ Request the current profile """
+    def getJsonProfile(self, options=None):
+        """
+        Request the current profile
+
+        Args:
+            options (dict): Optional dictionary with configuration
+                - waitCompletion (bool): If True, waits for profile response (default: False)
+
+        Returns:
+            dict: Profile data if waitCompletion is True and profile is received successfully
+            None: If waitCompletion is False
+
+        Raises:
+            TimeoutError: If waitCompletion is True and no response is received within timeout
+            RuntimeError: If profile response indicates failure (success: false)
+        """
+        if options is None:
+            options = {}
+
+        wait_completion = options.get('waitResponse', False)
+        profile_data = None
+
         minimumVersion = '3.4.3'
         if self.pg3MinimumVersion(minimumVersion):
+            if wait_completion:
+                # Create an Event to signal when profile is received
+                profile_event = Event()
+                profile_result = {'data': None}
+
+                def profile_handler(received_profile):
+                    profile_result['data'] = received_profile
+                    profile_event.set()
+
+                # Subscribe to profile updates
+                self.subscribe(self.PROFILE, profile_handler)
+
             LOGGER.info('Sending request to get the existing profile command to Polyglot.')
             self.send({'getprofile': {}}, 'system')
+
+            if wait_completion:
+                # Wait for profile response with timeout
+                if profile_event.wait(timeout=10):
+                    profile_data = profile_result['data']
+
+                    # Check if profile response indicates failure
+                    if isinstance(profile_data, dict) and profile_data.get('success') is False:
+                        LOGGER.error('Profile request failed: %s',
+                                     profile_data.get('message', 'No error message provided'))
+                        raise RuntimeError(f"Profile request failed: {profile_data.get('message', 'Unknown error')}")
+                else:
+                    LOGGER.error('Timeout waiting for profile response')
+                    raise TimeoutError('No profile response received within 10 seconds')
+
+
+            unsubscribeResult = self.unsubscribe(self.PROFILE, profile_handler)
+
+            # Should never happen
+            if unsubscribeResult is False:
+                LOGGER.error('Failed to unsubscribe from profile updates')
+
+            return profile_data if wait_completion else None
         else:
-            LOGGER.error('getJsonProfile failed. PG3 version {} < {}'.format(self.pg3Version, minimumVersion))
+            LOGGER.error('getJsonProfile failed. PG3 version {} < {}'.format(
+                self.pg3Version, minimumVersion))
+
 
     def updateJsonProfile(self, profile):
         """
