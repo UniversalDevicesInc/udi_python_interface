@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.4.4
+- getJsonProfile() can return the profile directly
+
 ### 3.4.3
 - Add support for dynamic profiles
 - Synchronize version with PG3x 3.4.3
