@@ -20,6 +20,7 @@ from datetime import datetime
 import time
 import netifaces
 import logging
+import uuid
 
 LOGGER.info('Loading MQTT module')
 import paho.mqtt.client as mqtt
@@ -1153,6 +1154,18 @@ class Interface(object):
         except (KeyError, ValueError) as err:
             LOGGER.error('handleDelNode: {}'.format(err), exc_info=True)
 
+    def _createRequestId(self):
+        """
+        Creates a request ID.
+        We use this when sending a request to PG3x. The responses should include the requestId from the requests.
+        Only some method supports this, like updateJsonProfile.
+
+        Returns:
+            str: A unique request ID (8 characters)
+        """
+        return uuid.uuid4().hex[:8]
+
+
     """
     Methods below are callable by the nodeserver proper and are considered
     to be API.
@@ -1511,37 +1524,49 @@ class Interface(object):
                 self.pg3Version, minimumVersion))
 
 
-    def updateJsonProfile(self, profile):
+    def updateJsonProfile(self, profile, options=None):
         """
         Update the JSON profile with validation for delete and add/replace operations.
 
-        Example:
-        {
-          "delete": {
-            "editors": [ "I3_LOAD_4", "I3_ON_OFF" ],
-            "nodedefs": [ "*" ],
-            "linkdefs": [ "*" ]
-          },
-          "editors": [ /* ... */ ],
-          "nodedefs": [ /* ... */ ],
-          "linkdefs": [ /* ... */ ]
-        }
+        Args:
+            profile (dict): The profile updates
+                Example:
+                {
+                  "delete": {
+                    "editors": [ "I3_LOAD_4", "I3_ON_OFF" ],
+                    "nodedefs": [ "*" ],
+                    "linkdefs": [ "*" ]
+                  },
+                  "editors": [ /* ... */ ],
+                  "nodedefs": [ /* ... */ ],
+                  "linkdefs": [ /* ... */ ]
+                }
 
-        delete Section Rules:
-        •	Optional. If omitted, nothing is deleted.
-        •	For each category (editors, nodedefs, linkdefs):
-        •	"*" → Delete all items in that category.
-        •	List of IDs → Delete only the specified items.
-        •	Items not listed are preserved.
-        Add/Replace Rules:
-        •	Any editors, nodedefs, or linkdefs provided:
-        •	Replace existing items with the same id.
-        •	Add new items if no matching id exists.
+                delete Section Rules:
+                •	Optional. If omitted, nothing is deleted.
+                •	For each category (editors, nodedefs, linkdefs):
+                •	"*" → Delete all items in that category.
+                •	List of IDs → Delete only the specified items.
+                •	Items not listed are preserved.
+                Add/Replace Rules:
+                •	Any editors, nodedefs, or linkdefs provided:
+                •	Replace existing items with the same id.
+                •	Add new items if no matching id exists.
+
+            options (dict): Optional dictionary with configuration
+                - waitCompletion (bool): If True, waits for profile response (default: False)
 
         Raises:
+            TimeoutError: If waitResponse is True and no response is received within timeout
             ValueError: If profile validation fails
         """
-        minimumVersion = '3.4.3'
+
+        if options is None:
+            options = {}
+
+        wait_completion = options.get('waitResponse', False)
+
+        minimumVersion = '3.4.5'
         if self.pg3MinimumVersion(minimumVersion):
             if not isinstance(profile, dict):
                 LOGGER.error('Profile must be a dictionary')
@@ -1591,9 +1616,51 @@ class Interface(object):
                             LOGGER.error(f'ID field in {section} must be a string')
                             raise ValueError(f'ID field in {section} must be a string')
 
+            requestId = self._createRequestId()
+            profile['requestId'] = requestId
+
             # If all validations pass, send the message
             LOGGER.info('Sending profile update request to Polyglot.')
-            self.send({'updateprofile': profile}, 'system')
+
+            if wait_completion:
+                # Create an Event to signal when profile is received
+                responseEvent = Event()
+                response = {'data': None}
+
+                def responseHandler(data):
+                    if data['requestId'] == requestId:
+                        response['data'] = data
+                        responseEvent.set()
+
+                self.subscribe(self.UPDATEPROFILEDONE, responseHandler)
+
+                self.send({'updateprofile': profile}, 'system')
+
+                LOGGER.debug('Waiting for update profile done from PG3.')
+
+                # Wait for profile response with timeout
+                if responseEvent.wait(timeout=10):
+                    profileUpdateResponse = response['data']
+
+                    # Check if profile response indicates failure
+                    if isinstance(profileUpdateResponse, dict) and profileUpdateResponse.get('success') is False:
+                        LOGGER.error('Update profile request failed: %s',
+                                     profileUpdateResponse.get('message', 'No error message provided'))
+                        raise RuntimeError(f"Update profile request failed: {profileUpdateResponse.get('message', 'Unknown error')}")
+                else:
+                    LOGGER.error('Timeout waiting for profile response')
+                    raise TimeoutError('No update profile response received within 10 seconds')
+
+                unsubscribeResult = self.unsubscribe(self.UPDATEPROFILEDONE, responseHandler)
+
+                # Should never happen
+                if unsubscribeResult is False:
+                    LOGGER.error('Failed to unsubscribe from profile updates')
+
+                return profileUpdateResponse
+            else:
+                self.send({'updateprofile': profile}, 'system')
+                return None
         else:
             LOGGER.error('updateJsonProfile failed. PG3 version {} < {}'.format(self.pg3Version, minimumVersion))
 
