@@ -1,7 +1,10 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.4.5
+- updateJsonProfile() can return the profile directly (waitResponse option)
+
 ### 3.4.4
-- getJsonProfile() can return the profile directly
+- getJsonProfile() can return the profile directly (waitResponse option)
 
 ### 3.4.3
 - Add support for dynamic profiles
