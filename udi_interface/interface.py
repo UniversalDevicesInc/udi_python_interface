@@ -1454,54 +1454,58 @@ class Interface(object):
             None: If waitCompletion is False
 
         Raises:
-            TimeoutError: If waitCompletion is True and no response is received within timeout
+            TimeoutError: If waitResponse is True and no response is received within timeout
             RuntimeError: If profile response indicates failure (success: false)
         """
         if options is None:
             options = {}
 
         wait_completion = options.get('waitResponse', False)
-        profile_data = None
 
         minimumVersion = '3.4.3'
         if self.pg3MinimumVersion(minimumVersion):
+            LOGGER.info('Sending request to get the existing profile to PG3.')
+
             if wait_completion:
                 # Create an Event to signal when profile is received
-                profile_event = Event()
-                profile_result = {'data': None}
+                responseEvent = Event()
+                # We use response['data'] to pass information between threads.
+                response = {'data': None}
 
-                def profile_handler(received_profile):
-                    profile_result['data'] = received_profile
-                    profile_event.set()
+                def responseHandler(data):
+                    response['data'] = data
+                    responseEvent.set()
 
                 # Subscribe to profile updates
-                self.subscribe(self.PROFILE, profile_handler)
+                self.subscribe(self.PROFILE, responseHandler)
 
-            LOGGER.info('Sending request to get the existing profile command to Polyglot.')
-            self.send({'getprofile': {}}, 'system')
+                self.send({'getprofile': {}}, 'system')
 
-            if wait_completion:
+                LOGGER.debug('Waiting for profile from PG3.')
+
                 # Wait for profile response with timeout
-                if profile_event.wait(timeout=10):
-                    profile_data = profile_result['data']
+                if responseEvent.wait(timeout=10):
+                    profile = response['data']
 
                     # Check if profile response indicates failure
-                    if isinstance(profile_data, dict) and profile_data.get('success') is False:
+                    if isinstance(profile, dict) and profile.get('success') is False:
                         LOGGER.error('Profile request failed: %s',
-                                     profile_data.get('message', 'No error message provided'))
-                        raise RuntimeError(f"Profile request failed: {profile_data.get('message', 'Unknown error')}")
+                                     profile.get('message', 'No error message provided'))
+                        raise RuntimeError(f"Profile request failed: {profile.get('message', 'Unknown error')}")
                 else:
                     LOGGER.error('Timeout waiting for profile response')
                     raise TimeoutError('No profile response received within 10 seconds')
 
+                unsubscribeResult = self.unsubscribe(self.PROFILE, responseHandler)
 
-            unsubscribeResult = self.unsubscribe(self.PROFILE, profile_handler)
+                # Should never happen
+                if unsubscribeResult is False:
+                    LOGGER.error('Failed to unsubscribe from profile updates')
 
-            # Should never happen
-            if unsubscribeResult is False:
-                LOGGER.error('Failed to unsubscribe from profile updates')
-
-            return profile_data if wait_completion else None
+                return profile
+            else:
+                self.send({'getprofile': {}}, 'system')
+                return None
         else:
             LOGGER.error('getJsonProfile failed. PG3 version {} < {}'.format(
                 self.pg3Version, minimumVersion))
