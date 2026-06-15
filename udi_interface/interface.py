@@ -292,7 +292,8 @@ class Interface(object):
         self.uuid = self.pg3init['uuid']
         self.pg3Version = self.pg3init['pg3Version']
         self.profileNum = str(self.pg3init['profileNum'])
-        self.id = '{}_{}'.format(self.uuid, self.profileNum)
+        self.prefix = self.pg3init.get('prefix', self.uuid)
+        self.id = '{}_{}'.format(self.prefix, self.profileNum)
         self.topicInput = 'udi/pg3/ns/clients/{}'.format(self.id)
         self._threads = {}
         self._threads['socket'] = Thread(
@@ -330,6 +331,7 @@ class Interface(object):
         """ persistent storage for Notices """
         self.Notices = Custom(self, 'notices')
 
+        LOGGER.warning('MQTT Client ID: {}'.format(self.id))
         LOGGER.info('Initialization received from Polyglot V3 {}  [ISY: {}, Slot: {}]'.format(self.pg3init['pg3Version'], self.pg3init['isyVersion'], self.pg3init['profileNum']))
 
         try:
@@ -1908,9 +1910,13 @@ class Interface(object):
         LOGGER.info('Webhook start')
 
         # Create the base webhook data
+        # This will be saved on portal.
+        # uuid & slot: This is the primary key
+        # prefix: This is the plugin prefix. Webhooks will be sent on topic for plugin <prefix>_<uuid>
         data = {
             'uuid': self.uuid,
             'profileNum': self.profileNum,
+            'prefix': self.prefix,
             'timestamp': datetime.utcnow().isoformat() + 'Z'
         }
 
