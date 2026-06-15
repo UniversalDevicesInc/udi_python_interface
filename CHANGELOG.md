@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.4.6
+- Add support for plugins hosted on eisy-ui
+
 ### 3.4.5
 - updateJsonProfile() can return the profile directly (waitResponse option)
 
