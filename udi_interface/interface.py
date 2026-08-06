@@ -76,7 +76,8 @@ class pub(object):
          [21, 'bonjour', None],
          [22, 'del_node_done', None],
          [23, 'getprofile', None],
-         [24, 'updateprofile', None]
+         [24, 'updateprofile', None],
+         [25, 'custom_request', None]
          ]
 
     # topics is a set of key/value pairs holding the callbacks for each
@@ -261,6 +262,7 @@ class Interface(object):
     DELNODEDONE       = pub.topic_list[22][0]
     PROFILE           = pub.topic_list[23][0]
     UPDATEPROFILEDONE = pub.topic_list[24][0]
+    CUSTOMREQUEST     = pub.topic_list[25][0]
 
     """
     Polyglot Interface Class
@@ -428,7 +430,8 @@ class Interface(object):
                          'status', 'shortPoll', 'longPoll', 'delete',
                          'config', 'getIsyInfo', 'getAll', 'custom', 'setLogLevel',
                          'getNsInfo', 'discover', 'nsdata', 'setController', 'setPoll',
-                         'oauth', 'webhook', 'bonjour', 'getprofile', 'updateprofile' ]
+                         'oauth', 'webhook', 'bonjour', 'getprofile', 'updateprofile',
+                         'customRequest' ]
 
             try:
                 parsed_msg = json.loads(msg.payload.decode('utf-8'))
@@ -1124,6 +1127,13 @@ class Interface(object):
             pub.publish(self.PROFILE, None, item)
         elif key == 'updateprofile':
             pub.publish(self.UPDATEPROFILEDONE, None, item)
+        elif key == 'customRequest':
+            if not pub.hasSubscriber(self.CUSTOMREQUEST):
+                LOGGER.warning('Received a customRequest messages but the plugin has no listeners')
+                # eisy-ui's API will return this error
+                self.customResponseError(item['requestId'], errorMessage='Not supported', status=501)
+            else:
+                pub.publish(self.CUSTOMREQUEST, None, item)
 
     def _handleAddNode(self, result):
         try:
@@ -1949,6 +1959,37 @@ class Interface(object):
             }]
         }
         self.send(message, 'command')
+
+    def customResponse(self, requestId, body):
+        """ Send a successful response to a customRequest. """
+        message = {
+            'customResponse': {
+                'requestId': requestId,
+                'payload': {
+                    'body': body
+                }
+            }
+        }
+        self.send(message, 'system')
+
+    def customResponseError(self, requestId, errorMessage='Plugin Error', status=500, errorCode=None, body=None):
+        """ Send an error response to a customRequest. """
+        payload = {
+            'body': body,
+            'errorMessage': errorMessage,
+            'status': status
+        }
+        # errorCode is optional and can't be null
+        if errorCode is not None:
+            payload['errorCode'] = errorCode
+
+        message = {
+            'customResponse': {
+                'requestId': requestId,
+                'payload': payload
+            }
+        }
+        self.send(message, 'system')
 
     def _disconnectedMessage(self):
         message = {"disconnected": [{}]}
