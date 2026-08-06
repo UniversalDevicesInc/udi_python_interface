@@ -1,5 +1,9 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.4.7
+- Add support for custom requests from eisy-ui
+- Ignore malformed MQTT messages 
+
 ### 3.4.6
 - Add support for plugins hosted on eisy-ui
 
