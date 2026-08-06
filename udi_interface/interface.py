@@ -430,8 +430,11 @@ class Interface(object):
                          'getNsInfo', 'discover', 'nsdata', 'setController', 'setPoll',
                          'oauth', 'webhook', 'bonjour', 'getprofile', 'updateprofile' ]
 
-            parsed_msg = json.loads(msg.payload.decode('utf-8'))
-            #LOGGER.debug('MQTT Received Message: {}: {}'.format(msg.topic, parsed_msg))
+            try:
+                parsed_msg = json.loads(msg.payload.decode('utf-8'))
+            except (ValueError, JSONDecodeError) as err:
+                LOGGER.error('Failed to parse MQTT message: {}'.format(err))
+                return
 
             # some of these should move to above
 
