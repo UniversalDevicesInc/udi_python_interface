@@ -1,5 +1,10 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.4.8
+- Added getPushGroups() to request push notification groups from eisy-ui
+- Added polyglot.PUSHGROUPS event, fired when push groups are received from eisy-ui
+- Added group and sound parameters to udm_alert()
+
 ### 3.4.7
 - Add support for custom requests from eisy-ui
 - Ignore malformed MQTT messages 
