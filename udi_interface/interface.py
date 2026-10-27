@@ -77,7 +77,8 @@ class pub(object):
          [22, 'del_node_done', None],
          [23, 'getprofile', None],
          [24, 'updateprofile', None],
-         [25, 'custom_request', None]
+         [25, 'custom_request', None],
+         [26, 'pushgroups', None]
          ]
 
     # topics is a set of key/value pairs holding the callbacks for each
@@ -263,6 +264,7 @@ class Interface(object):
     PROFILE           = pub.topic_list[23][0]
     UPDATEPROFILEDONE = pub.topic_list[24][0]
     CUSTOMREQUEST     = pub.topic_list[25][0]
+    PUSHGROUPS        = pub.topic_list[26][0]
 
     """
     Polyglot Interface Class
@@ -332,6 +334,9 @@ class Interface(object):
 
         """ persistent storage for Notices """
         self.Notices = Custom(self, 'notices')
+
+        self._pushGroups = []
+
 
         LOGGER.warning('MQTT Client ID: {}'.format(self.id))
         LOGGER.info('Initialization received from Polyglot V3 {}  [ISY: {}, Slot: {}]'.format(self.pg3init['pg3Version'], self.pg3init['isyVersion'], self.pg3init['profileNum']))
@@ -431,7 +436,7 @@ class Interface(object):
                          'config', 'getIsyInfo', 'getAll', 'custom', 'setLogLevel',
                          'getNsInfo', 'discover', 'nsdata', 'setController', 'setPoll',
                          'oauth', 'webhook', 'bonjour', 'getprofile', 'updateprofile',
-                         'customRequest' ]
+                         'customRequest', 'getPushGroups' ]
 
             try:
                 parsed_msg = json.loads(msg.payload.decode('utf-8'))
@@ -1127,6 +1132,9 @@ class Interface(object):
             pub.publish(self.PROFILE, None, item)
         elif key == 'updateprofile':
             pub.publish(self.UPDATEPROFILEDONE, None, item)
+        elif key == 'getPushGroups':
+            self._pushGroups = item.get('groups', []) if isinstance(item, dict) else []
+            pub.publish(self.PUSHGROUPS, None, self._pushGroups)
         elif key == 'customRequest':
             if not pub.hasSubscriber(self.CUSTOMREQUEST):
                 LOGGER.warning('Received a customRequest messages but the plugin has no listeners')
@@ -1228,15 +1236,28 @@ class Interface(object):
         """ Tells you if this nodeserver and Polyglot are connected via MQTT """
         return self.connected
 
-    def udm_alert(self, title, notice):
-        info = {}
+    def getPushGroups(self):
+        if not self.pg3init.get('isEisyui', False):
+            LOGGER.error('getPushGroups is only supported on eisy-ui')
+            return
 
-        info['title'] = title
-        info['body'] = notice
-        message = {
-                'push': [info]
-        }
-        self.send(message, 'system')
+        self.send({'getPushGroups': {}}, 'system')
+
+    def udm_alert(self, title, notice, group=None, sound=None):
+        info = {'title': title, 'body': notice}
+        if group is not None or sound is not None:
+            if not self.pg3init.get('isEisyui', False):
+                LOGGER.error('group and sound parameters are only supported on eisy-ui')
+                return
+            if group is not None:
+                if self._pushGroups and not any(g['id'] == group for g in self._pushGroups):
+                    raise ValueError(f'Push group "{group}" does not exist')
+                info['group'] = group
+            if sound is not None:
+                if not isinstance(sound, str):
+                    raise ValueError('sound must be a string')
+                info['sound'] = sound
+        self.send({'push': [info]}, 'system')
 
     def addNode(self, node, conn_status=None, rename=False):
         """
