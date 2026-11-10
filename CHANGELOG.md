@@ -1,5 +1,9 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.4.9
+- Mask access & refresh token logging when at info level (debug level shows it)
+- Add warning if running in debug log level
+
 ### 3.4.8
 - Added getPushGroups() to request push notification groups from eisy-ui
 - Added polyglot.PUSHGROUPS event, fired when push groups are received from eisy-ui
