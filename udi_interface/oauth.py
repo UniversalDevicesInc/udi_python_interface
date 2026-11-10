@@ -75,7 +75,8 @@ class OAuth:
     # User proceeded through oAuth authentication
     # The authorization_code has already been exchanged for access_token and refresh_token by PG3
     def oauthHandler(self, token):
-        LOGGER.info('Received oAuth tokens: {}'.format(json.dumps(token)))
+        masked = {**token, 'access_token': self.maskToken(token.get('access_token')), 'refresh_token': self.maskToken(token.get('refresh_token'))}
+        LOGGER.info('Received oAuth tokens: {}'.format(json.dumps(masked)))
         self._setExpiry(token)
         # Make sure tokens with added expiry key are written back to the server (save=True)
         self._oauthTokens.load(token, save=True)
@@ -160,7 +161,7 @@ class OAuth:
         except requests.exceptions.HTTPError as error:
             LOGGER.error(f"Failed to refresh oAuth token: {error}")
             if response is not None:
-                LOGGER.error(response.text)
+                LOGGER.debug(response.text)
             # NOTE: If refresh tokens fails, we keep the existing tokens available.
 
     # Gets the access token, and refresh if necessary
@@ -197,3 +198,8 @@ class OAuth:
     # Returns the local copy of the current settings
     def getOauthSettings(self):
         return self._oauthConfig.dump()['_rawdata']
+
+    def maskToken(self, token):
+        if not token or len(token) <= 3:
+            return '***'
+        return '***' + str(token)[-3:]
