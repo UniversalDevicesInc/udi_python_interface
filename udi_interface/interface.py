@@ -818,23 +818,7 @@ class Interface(object):
                     logging.addLevelName(l['level'], l['value'])
 
         if 'logLevel' in config:
-            self.currentLogLevel = config['logLevel'].upper()
-            LOGGER.debug('Setting log level to {}'.format(self.currentLogLevel))
-            if self.currentLogLevel == 'ALL':
-                LOGGER.setLevel('DEBUG')
-                CLOGGER.setLevel('DEBUG')
-                NLOGGER.setLevel('DEBUG')
-                ILOGGER.setLevel('DEBUG')
-                self.currentLogLevel = 'DEBUG'
-            else:
-                LOGGER.setLevel(self.currentLogLevel)
-                CLOGGER.setLevel(self.currentLogLevel)
-                NLOGGER.setLevel(self.currentLogLevel)
-                ILOGGER.setLevel(self.currentLogLevel)
-
-            GLOBAL_LOGGER.setLevel(self.currentLogLevel)
-            level = logging.getLevelName(self.currentLogLevel)
-            pub.publish(self.LOGLEVEL, None, { 'name': self.currentLogLevel, 'level': level }  )
+            self._applyLogLevel(config['logLevel'].upper())
 
         pub.publish(self.CONFIG, None, config)
 
@@ -1099,25 +1083,7 @@ class Interface(object):
                 self.stop()
         elif key == 'setLogLevel':
             try:
-                self.currentLogLevel = item['level'].upper()
-                if self.currentLogLevel == 'ALL':
-                    LOGGER.setLevel('DEBUG')
-                    CLOGGER.setLevel('DEBUG')
-                    NLOGGER.setLevel('DEBUG')
-                    ILOGGER.setLevel('DEBUG')
-                    self.currentLogLevel = 'DEBUG'
-
-                GLOBAL_LOGGER.setLevel(self.currentLogLevel)
-
-                # FIXME: Testing setting level from dashboard
-                LOGGER.setLevel(self.currentLogLevel)
-                CLOGGER.setLevel(self.currentLogLevel)
-                NLOGGER.setLevel(self.currentLogLevel)
-                ILOGGER.setLevel(self.currentLogLevel)
-
-                level = logging.getLevelName(self.currentLogLevel)
-                pub.publish(self.LOGLEVEL, None, { 'name': self.currentLogLevel, 'level': level }  )
-
+                self._applyLogLevel(item['level'].upper())
             except (KeyError, ValueError) as err:
                 LOGGER.error('Failed to set {}: {}'.format(key, err), exc_info=True)
         elif key == 'setController':
@@ -1849,6 +1815,21 @@ class Interface(object):
             self._ifaceData.profile_version = self.serverdata['profile_version']
 
         return update_profile
+
+    def _applyLogLevel(self, level):
+        if level == 'ALL':
+            level = 'DEBUG'
+        self.currentLogLevel = level
+        LOGGER.setLevel(level)
+        CLOGGER.setLevel(level)
+        NLOGGER.setLevel(level)
+        ILOGGER.setLevel(level)
+        GLOBAL_LOGGER.setLevel(level)
+        LOGGER.warning('Log level is set to {}'.format(self.currentLogLevel))
+
+        if level == 'DEBUG':
+            LOGGER.warning('The log level is set to DEBUG, which may include sensitive data in your plugin log. Consider changing the log level to INFO.')
+        pub.publish(self.LOGLEVEL, None, {'name': level, 'level': logging.getLevelName(level)})
 
     def getLogLevel(self):
         return self.currentLogLevel
