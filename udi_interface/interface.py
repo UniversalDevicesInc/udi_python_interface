@@ -78,7 +78,8 @@ class pub(object):
          [23, 'getprofile', None],
          [24, 'updateprofile', None],
          [25, 'custom_request', None],
-         [26, 'pushgroups', None]
+         [26, 'pushgroups', None],
+         [27, 'files', None]
          ]
 
     # topics is a set of key/value pairs holding the callbacks for each
@@ -265,6 +266,7 @@ class Interface(object):
     UPDATEPROFILEDONE = pub.topic_list[24][0]
     CUSTOMREQUEST     = pub.topic_list[25][0]
     PUSHGROUPS        = pub.topic_list[26][0]
+    FILES             = pub.topic_list[27][0]
 
     """
     Polyglot Interface Class
@@ -436,7 +438,7 @@ class Interface(object):
                          'config', 'getIsyInfo', 'getAll', 'custom', 'setLogLevel',
                          'getNsInfo', 'discover', 'nsdata', 'setController', 'setPoll',
                          'oauth', 'webhook', 'bonjour', 'getprofile', 'updateprofile',
-                         'customRequest', 'getPushGroups' ]
+                         'customRequest', 'getPushGroups', 'filesChanged' ]
 
             try:
                 parsed_msg = json.loads(msg.payload.decode('utf-8'))
@@ -1101,6 +1103,8 @@ class Interface(object):
         elif key == 'getPushGroups':
             self._pushGroups = item.get('groups', []) if isinstance(item, dict) else []
             pub.publish(self.PUSHGROUPS, None, self._pushGroups)
+        elif key == 'filesChanged':
+            pub.publish(self.FILES, None, item)
         elif key == 'customRequest':
             if not pub.hasSubscriber(self.CUSTOMREQUEST):
                 LOGGER.warning('Received a customRequest messages but the plugin has no listeners')
