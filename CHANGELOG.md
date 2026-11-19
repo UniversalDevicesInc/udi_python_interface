@@ -1,5 +1,8 @@
 # **Changelog for PG3 Python Interface**
 
+### 3.4.10
+- Added handling of polyglot.FILES events sent from eisy-ui file manager
+
 ### 3.4.9
 - Mask access & refresh token logging when at info level (debug level shows it)
 - Add warning if running in debug log level
